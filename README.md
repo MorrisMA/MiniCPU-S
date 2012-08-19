@@ -1,4 +1,4 @@
-MiniCPU-S : A minimal CPU targeted at CPLDs using SPI memory and I/O devices.
+MiniCPU-S : Minimal CPU for CPLDs Using SPI Memory/IO and a Serial ALU
 =======================
 
 Copyright (C) 2012, Michael A. Morris <morrisma@mchsi.com>.
@@ -9,122 +9,149 @@ Released under LGPL.
 General Description
 -------------------
 
-This project is provides a minimal CPU implementation targetted at CPLDs.
+This project is provides a minimal CPU implementation targeted at CPLDs.
 
 Memory and I/O is supported using SPI-compatible serial EEPROMS, serial FRAMs,
 and serial I/O devices.
 
-In its current state, the instruction set has been defined and the RTL for a
-serial ALU has been developed.
+In its current state, the instruction set for the MiniCPU-S has been defined, an
+initial release of the document describing the instruction set has been developed,
+and the serial ALU has been developed.
 
-It is provided as a core. Several external components
-are required to form a functioning processor: (1) memory, (2) interrupt controller,
-and (3) I/O interface buffers. The Verilog testbench provided demonstrates
-a simple configuration for a functioning processor implemented with the M65C02
-core: M65C02_Core. Currently, the core provided here only executes the original op-codes
-of the WDC 65C02 processor, and not the extended instructions of the current WDC
-W65C02S synthesizable core. (In addition to the original 65C02 instructions, the
-WDC W65C02S also implements the BBSx, BBRx, SMBx, and RMBx instructions introduced
-by Rockwell in the R65C02, and additional instructions introduced by WDC in its
-65C802/65C816 microprocessors.)
+The reference target for the MiniCPU-S are Xilinx XC95xxx CPLDs, although the
+RTL is not restricted to that family. The RTL for the serial ALU of the MiniCPU-S,
+written in Verilog, has been targeted to the XC9572-7PC44 device. A 16-bit version
+of the serial ALU fits into that device with 100% utilization of the macrocells 
+in that device. The RTL has also been fitted to devices in the Xilinx XC9500XL
+and XC2R Coolrunner II CPLD families, and the Xilinx Spartan 3AN FPGA family.
 
-The core handles an interrupt signal, which external logic asserts after it processes
-any interrupts that it provides. That is, the core accepts and performs
-the interrupt trap processing, but the external logic must implement the type of
-interrupt (maskable or non-maskable), and provide the vector to the core. This
-implementation is different than the original processor's in that an indirect
-jump through a predetermined address is not performed by the core. The implementation
-envisioned is that the external interrupt controller records the vectors for reset
-(RST), the non-maskable interrupt (NMI), or the maskable interrupt (IRQ) and
-provides the apropriate vector when requested by the core.
+Instruction Set 
+---------------
 
-The core assumes that the external memory is implemented as an asynchronous
-memory device, and as a result, the core expects that the memory will accept an
-address and return the read data at that address in the same cycle. It also
-expects that addresses and write data from the core will be accepted in the same
-cycle. The core does provide an external transfer acknowledge signal, Ack, that
-external logic may use to extend memory cycles.
+The MiniCPU-S currently implements an instruction set consisting of only 33 defined
+instructions. The architecture of the MiniCPU-S determines the capabilities that
+the instruction set can support. With the target PLD architecture being the XC9500
+CPLDs, the architecture of the MiniCPU-S is restricted to one which is not register
+rich. Another restriction to the MiniCPU-S' architecture is the requirement that
+the implementation fit into on or two XC9572-xPC84 or XC95108-xPC84 devices.
 
-The core provides a large number of status and control signals that external
-logic may use. It also provides access to many internal signals such as all of
-the registers, A, X, Y, S, and P. The Mode, RMW, SC, and Done status outputs 
-may be used to provide additional signals to external devices. Mode provides an
-indication of the kind of instruction being executed:
+With these two restrictions in mind, an initial instruction set was defined using
+the architectures of the Microchip PIC, Inmos T212, and WDC65C02 as references. 
+The result is a 0 address ALU like that of the Inmos T212, with a minimal number of
+instructions like the PIC processors, and the adder/subtractor architecture of the
+WDC65C02 to enable multi-precision additions/subtractions (unlike the T212).
 
-    0 - internal/single cycle (INC/DEC A, TAX/TXA, SEI/CLI, etc.),
-    1 - memory access (LDA/LDX/LDY, STA/STX/STY/STZ, INC abs, etc.),
-    2 - stack access (PHA/PLA, PHX/PLX, PHY/PLY),
-    3 - jump/branch (JMP, BRA, Bcc),
-    4 - subroutine call (JSR),
-    5 - subroutine return (RTS/RTI)
-    6 - break (BRK)
-    7 - Invalid (all undefined op-codes)
+MiniCPU-S instructions consist of two components: {I[3:0], Op[3:0]}. Each 8-bit
+value fetched from instruction memory consists of these two components. I[3:0]
+provides the CPU instruction to be performed during the execution phase. Op[3:0]
+provides the least significant 4 bits of an operand register. The operand register
+is used to provide any constants fetched from instruction memory. The operand
+register is the only way to specify data constants, and subroutine and branch
+addresses. In addition, the operand register may also be loaded with a value that
+represents the operation code for an indirectly executed instruction.
 
-RMW indicates that a read-modify-write instruction will be performed. External
-logic can use this signal to lock memory.
+To manipulate the operand register, two instructions are required: Negative Prefix
+(NFX), and Prefix (PFX). These two instructions insert the Op[3:0] from the instructions
+memory fetch value and shift the operand register 4 places left (in preparation
+for the next instruction). NFX complements the operand register during the shift,
+and PFX does not. All other instructions will clear the operand register when they
+complete. Thus, NFX and PFX perform a function like the Intel Architecture (IA)
+segment register override prefixes. Therefore, depending on the value of the constant
+or relative offsets (program branches use instruction pointer relative addressing)
+that must be loaded, the number of NFX/PFX instructions required to appropriately
+preload the operand register may vary from 1 to 3; the final 4 bits required will
+be contained in instruction. This means that for short forward branches and jumps,
+the relative offset required is contained in a single byte instruction. All branches
+and jumps less than ±256 can be encoded in two bytes: NFX/PFX, CALL/BEQ/BLT/JMP.
 
-SC is used to indicate a single cycle instruction.
+As indicated above, all addresses are relative to the instruction pointer, but also
+from a workspace pointer which provides the functionality of a external data memory
+stack pointer. Thus, the workspace pointer, if appropriately adjusted to allocate
+local variables, provides workspace pointer relative (stack pointer indexed)
+addressing of the first 16 of these variables in a single byte instruction.
 
-Done is asserted during the instruction fetch of the next instruction. In many
-cases, the execution of each instruction is signalled by Done on the same cycle
-that the next instruction op-code is being read from memory. Thus, the M65C02
-core demonstrates pipelined behaviour, and as a result, tends to execute many
-65C02 instructions in fewer clock cycles.
+The programmer visible/accessible registers of the MiniCPU-S are:
 
-The external bus transaction is signalled by IO_Op. IO_Op signals data memory
-writes, data memory reads, and instruction memory reads. Therefore, external
-logic may implement separate data and instruction memories and potentially
-double the amount of memory that an implementation may access. Using Mode it is
-also possible for stack memory to be separate from data and instruction memory.
+    I   :   Instruction pointer (not directly accessible)
+    W   :   Workspace pointer
+    Op  :   Operand register
+    A   :   ALU register stack Top-Of-Stack (TOS)
+    B   :   ALU register stack Next-On-Stack (NOS)
+    C   :   ALU register stack Bottom-Of-Stack (BOS)
+    Cy  :   ALU carry register
 
+All of these registers are the same width except Cy, which is a bit register.
+
+A summary of the MiniCPU-S instruction set is provided in the following table:
+
+    0x0-    :   CALL    --  Call subroutine (instruction pointer relative)
+    0x1-    :   LDK     --  Load constant
+    0x2-    :   LDL     --  Load local (workspace relative)
+    0x3-    :   LDNL    --  Load non-local (TOS pointer relative)
+    0x4-    :   STL     --  Store local (workspace relative)
+    0x5-    :   STNL    --  Store non-local (TOS pointer relative)
+    0x6-    :   NFX     --  Negative prefix (load, complement, shift left Op)
+    0x7-    :   PFX     --  Prefix (load, shift left Op)
+    0x8-    :   IN      --  Input word from SPI peripheral
+    0x9-    :   INB     --  Input byte from SPI peripheral
+    0xA-    :   OUT     --  Output word to SPI peripheral
+    0xB-    :   OUTB    --  Output byte to SPI peripheral
+    0xC-    :   BEQ     --  Branch if (TOS == 0)
+    0xD-    :   BLT     --  Branch if (TOS < 0)
+    0xE-    :   JMP     --  Unconditional jump
+    0xF-    :   EXE     --  Execute Op as indirect instruction
+    0xF0    :   CLC     --  Clear carry
+    0xF1    :   SEC     --  Set carry
+    0xF2    :   TAW     --  Transfer A to W 
+    0xF3    :   TWA     --  Transfer W to A 
+    0xF4    :   DUP     --  Duplicate A 
+    0xF5    :   XAB     --  Exchange A and B
+    0xF6    :   POP     --  Pop A
+    0xF7    :   RAS     --  Roll ALU stack: A => C; C => B; B => A;
+    0xF8    :   ROR     --  Rotate A right (by mask in B) and set C
+    0xF9    :   ROL     --  Rotate A left (by mask in B) and set C
+    0xFA    :   ADC     --  Add with carry: A = B + A + Cy
+    0xFB    :   SBC     --  Subtract with carry: A = B + ~A + Cy
+    0xFC    :   AND     --  Logical AND: A = B & A
+    0xFD    :   ORL     --  Logical OR:  A = B | A
+    0xFE    :   XOR     --  Logical XOR: A = B ^ A
+    0xFF    :   HLT     --  Halt processors
+    0x60F0  :   RTS     --  Return from subroutine
+    0x60F1  :   RTI     --  Return from interrupt
+    
 Implementation
 --------------
 
-The implementation of the core provided consists of five Verilog source files
-and several memory initialization files:
+The implementation of the serial ALU for the MiniCPU-S is provided in the following
+three Verilog source files:
 
-    M65C02_Core.v           - Top level module
-        M65C02_MPC.v        - Microprogram Controller (Fairchild F9408 MPC)
-        M65C02_ALU.v        - M65C02 ALU module
-            M65C02_BIN.v    - M65C02 Binary Mode Adder module
-            M65C02_BCD.v    - M65C02 Decimal Mode Adder module
-    
-    M65C02_Decoder_ROM.coe  - M65C02 core microprogram ALU control fields
-    M65C02_uPgm_V3.coe      - M65C02 core microprogram (Addressing mode control)
-
-    M65C02.ucf              - User Constraints File: period and pin LOCs
-    M65C02.tcl              - Project settings file
-    
-    tb_M65C02_Core.v        - Completed core testbench with test RAM
-    
-    M65C02.txt              - Memory configuration file of M65C02 test program
-        M65C02_Tst2.a65     - Kingswood A65 assembler source code test program
-
-    tb_M65C02_ALU.v         - testbench for the ALU module
-    tb_M65C02_BCD.v         - testbench for the BCD adder module
+    MiniCPU_SerALU.v            -- RTL source file for the Serial ALU
+        MiniCPU_SerALU.txt      -- include file instruction set localparams
+        tb_MiniCPU_SerALU.v     -- Rudimentary self-checking testbench
 
 Synthesis
 ---------
 
-The objective for the core is to synthesize such that the FF-FF speed is 100 MHz
-or higher in a Xilinx XC3S200AN-5FGG256 FPGA using Xilinx ISE 10.1i SP3. In that
-regard, the core provided meets and exceeds that objective. Using the settings
-provided in the M65C02.tcl file, ISE 10.1i tool implements the design and
-reports that the 9.091 ns period (110 MHz) constraint is satisfied.
+The objective for the MiniCPU-S to fit into one or two XC9572-xPC84 or XC95108-xPC74
+devices. The MiniCPU-S serial ALU provided at this time meets that objective by
+fitting into a single XC9572-xPC44 device. Special synthesis constraints to achieve
+the fit are: (1) keep hierarchy - NO; (2) collapsing input limit - 20/21; (3) collapsing
+p-term limit - 7. Other synthesis, translation, and fitting parameters can be set 
+to the defaults given for the ISE 10.1i SP3 CPLD fitter. 
 
 The ISE 10.1i SP3 implementation results are as follows:
 
-    Number of Slice FFs:            310
-    Number of 4-input LUTs:         746
-    Number of Occupied Slices:      480
-    Total Number of 4-input LUTs:   755 (9 used as route-throughs)
-
-    Number of BUFGMUXs:             1
-    Number of RAMB16BWEs            2   (M65C02_Decoder_ROM, M65C02_uPgm_V3)
-
-    Best Case Achievable:           9.035 ns (0.056 ns Setup, 0.976 ns Hold)
+    Number Macrocells Used:              72/72  (100%)
+    Number P-terms Used:                335/360 ( 93%)
+    Number Registers Used:               49/72  ( 69%)
+    Number of Pins Used:                 14/34  ( 42%)
+    Number Function Block Inputs Used:  132/144 ( 92%)
+    
+    Best Case Achievable (XC9572-7):    26.000 ns period (38.462 MHz)
 
 Status
 ------
 
-Design and verification is complete. User testing is underway. 
+Definition and documentation of the instruction set is complete. Design of the
+serial ALU is complete. Initial verification of the serial ALU is complete. Design
+and implementation of the MiniCPI-S Program Control Unit (PCU) is underway.  
