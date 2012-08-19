@@ -51,7 +51,7 @@ addresses. In addition, the operand register may also be loaded with a value tha
 represents the operation code for an indirectly executed instruction.
 
 To manipulate the operand register, two instructions are required: Negative Prefix
-(NFX), and Prefix (PFX). These two instructions insert the Op[3:0] from the instructions
+(NFX), and Prefix (PFX). These two instructions insert the Op[3:0] from the instruction's
 memory fetch value and shift the operand register 4 places left (in preparation
 for the next instruction). NFX complements the operand register during the shift,
 and PFX does not. All other instructions will clear the operand register when they
