@@ -1,4 +1,4 @@
-MiniCPU-S : Minimal CPU for CPLDs Using SPI Memory/IO and a Serial ALU
+MiniCPU-S : Minimal CPU in Verilog
 =======================
 
 Copyright (C) 2012, Michael A. Morris <morrisma@mchsi.com>.
@@ -9,14 +9,14 @@ Released under LGPL.
 General Description
 -------------------
 
-This project is provides a minimal CPU implementation targeted at CPLDs.
+This project is provides a minimal CPU implementation targeted at CPLDs. Memory
+and I/O will be supported using SPI-compatible standard serial EEPROMS and FRAMs, and
+standard or custom serial I/O devices.
 
-Memory and I/O is supported using SPI-compatible serial EEPROMS, serial FRAMs,
-and serial I/O devices.
-
-In its current state, the instruction set for the MiniCPU-S has been defined, an
-initial release of the document describing the instruction set has been developed,
-and the serial ALU has been developed.
+In its current state, the instruction set for the MiniCPU-S has been defined and
+the initial release of the MiniCPU-S System Design Description has been released.
+The MiniCPU-S serial ALU has been coded, tested, and released. The MiniCPU-S Program
+Control Unit (PCU) is in development.
 
 The reference target for the MiniCPU-S are Xilinx XC95xxx CPLDs, although the
 RTL is not restricted to that family. The RTL for the serial ALU of the MiniCPU-S,
@@ -98,7 +98,7 @@ A summary of the MiniCPU-S instruction set is provided in the following table:
     0xB-    :   OUTB    --  Output byte to SPI peripheral
     0xC-    :   BEQ     --  Branch if (TOS == 0)
     0xD-    :   BLT     --  Branch if (TOS < 0)
-    0xE-    :   JMP     --  Unconditional jump
+    0xE-    :   JMP     --  Unconditional jump (instruction pointer relative)
     0xF-    :   EXE     --  Execute Op as indirect instruction
     0xF0    :   CLC     --  Clear carry
     0xF1    :   SEC     --  Set carry
@@ -115,7 +115,7 @@ A summary of the MiniCPU-S instruction set is provided in the following table:
     0xFC    :   AND     --  Logical AND: A = B & A
     0xFD    :   ORL     --  Logical OR:  A = B | A
     0xFE    :   XOR     --  Logical XOR: A = B ^ A
-    0xFF    :   HLT     --  Halt processors
+    0xFF    :   HLT     --  Halt processor
     0x60F0  :   RTS     --  Return from subroutine
     0x60F1  :   RTI     --  Return from interrupt
     
@@ -132,7 +132,7 @@ three Verilog source files:
 Synthesis
 ---------
 
-The objective for the MiniCPU-S to fit into one or two XC9572-xPC84 or XC95108-xPC74
+The objective is for the MiniCPU-S to fit into one or two XC9572-xPC84 or XC95108-xPC84
 devices. The MiniCPU-S serial ALU provided at this time meets that objective by
 fitting into a single XC9572-xPC44 device. Special synthesis constraints to achieve
 the fit are: (1) keep hierarchy - NO; (2) collapsing input limit - 20/21; (3) collapsing
@@ -154,4 +154,4 @@ Status
 
 Definition and documentation of the instruction set is complete. Design of the
 serial ALU is complete. Initial verification of the serial ALU is complete. Design
-and implementation of the MiniCPI-S Program Control Unit (PCU) is underway.  
+and implementation of the MiniCPU-S PCU is underway.  
