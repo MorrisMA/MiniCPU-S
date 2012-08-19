@@ -33,7 +33,7 @@ instructions. The architecture of the MiniCPU-S determines the capabilities that
 the instruction set can support. With the target PLD architecture being the XC9500
 CPLDs, the architecture of the MiniCPU-S is restricted to one which is not register
 rich. Another restriction to the MiniCPU-S' architecture is the requirement that
-the implementation fit into on or two XC9572-xPC84 or XC95108-xPC84 devices.
+the implementation fit into one or two XC9572-xPC84 or XC95108-xPC84 devices.
 
 With these two restrictions in mind, an initial instruction set was defined using
 the architectures of the Microchip PIC, Inmos T212, and WDC65C02 as references. 
