@@ -14,7 +14,7 @@ and I/O will be supported using SPI-compatible standard serial EEPROMS and FRAMs
 standard or custom serial I/O devices.
 
 In its current state, the instruction set for the MiniCPU-S has been defined and
-the initial release of the MiniCPU-S System Design Description has been released.
+the initial release of the MiniCPU-S System Design Description has been made.
 The MiniCPU-S serial ALU has been coded, tested, and released. The MiniCPU-S Program
 Control Unit (PCU) is in development.
 
