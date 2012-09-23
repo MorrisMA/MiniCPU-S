@@ -84,7 +84,7 @@ All of these registers are the same width except Cy, which is a bit register.
 
 A summary of the MiniCPU-S instruction set is provided in the following table:
 
-    0xF-    :   EXE     --  Execute Op as indirect instruction
+    0x0-    :   EXE     --  Execute Op as indirect instruction
     0x1-    :   LDK     --  Load constant
     0x2-    :   LDL     --  Load local (workspace relative)
     0x3-    :   LDNL    --  Load non-local (TOS pointer relative)
