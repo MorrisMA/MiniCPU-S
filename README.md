@@ -21,7 +21,7 @@ Control Unit (PCU) is in development.
 The reference target for the MiniCPU-S are Xilinx XC95xxx CPLDs, although the
 RTL is not restricted to that family. The RTL for the serial ALU of the MiniCPU-S,
 written in Verilog, has been targeted to the XC9572-7PC44 device. A 16-bit version
-of the serial ALU fits into that device with 100% utilization of the macrocells 
+of the serial ALU fits into that device with 95% utilization of the macrocells 
 in that device. The RTL has also been fitted to devices in the Xilinx XC9500XL
 and XC2R Coolrunner II CPLD families, and the Xilinx Spartan 3AN FPGA family.
 
@@ -84,14 +84,14 @@ All of these registers are the same width except Cy, which is a bit register.
 
 A summary of the MiniCPU-S instruction set is provided in the following table:
 
-    0x0-    :   EXE     --  Execute Op as indirect instruction
-    0x1-    :   LDK     --  Load constant
-    0x2-    :   LDL     --  Load local (workspace relative)
-    0x3-    :   LDNL    --  Load non-local (TOS pointer relative)
-    0x4-    :   STL     --  Store local (workspace relative)
-    0x5-    :   STNL    --  Store non-local (TOS pointer relative)
-    0x6-    :   NFX     --  Negative prefix (load, complement, shift left Op)
-    0x7-    :   PFX     --  Prefix (load, shift left Op)
+    0x0-    :   PFX     --  Prefix (load, shift left Op)
+    0x1-    :   NFX     --  Negative prefix (load, complement, shift left Op)
+    0x2-    :   EXE     --  Execute Op as indirect instruction
+    0x3-    :   LDK     --  Load constant
+    0x4-    :   LDL     --  Load local (workspace relative)
+    0x5-    :   LDNL    --  Load non-local (TOS pointer relative)
+    0x6-    :   STL     --  Store local (workspace relative)
+    0x7-    :   STNL    --  Store non-local (TOS pointer relative)
     0x8-    :   IN      --  Input word from SPI peripheral
     0x9-    :   INB     --  Input byte from SPI peripheral
     0xA-    :   OUT     --  Output word to SPI peripheral
@@ -100,24 +100,24 @@ A summary of the MiniCPU-S instruction set is provided in the following table:
     0xD-    :   BLT     --  Branch if (TOS < 0)
     0xE-    :   JMP     --  Unconditional jump (instruction pointer relative)
     0xF-    :   CALL    --  Call subroutine (instruction pointer relative)
-    0x00    :   CLC     --  Clear carry
-    0x01    :   SEC     --  Set carry
-    0x02    :   TAW     --  Transfer A to W 
-    0x03    :   TWA     --  Transfer W to A 
-    0x04    :   DUP     --  Duplicate A 
-    0x05    :   XAB     --  Exchange A and B
-    0x06    :   POP     --  Pop A
-    0x07    :   RAS     --  Roll ALU stack: A => C; C => B; B => A;
-    0x08    :   ROR     --  Rotate A right (by mask in B) and set C
-    0x09    :   ROL     --  Rotate A left (by mask in B) and set C
-    0x0A    :   ADC     --  Add with carry: A = B + A + Cy
-    0x0B    :   SBC     --  Subtract with carry: A = B + ~A + Cy
-    0x0C    :   AND     --  Logical AND: A = B & A
-    0x0D    :   ORL     --  Logical OR:  A = B | A
-    0x0E    :   XOR     --  Logical XOR: A = B ^ A
-    0x0F    :   HLT     --  Halt processor
-    0x6000  :   RTS     --  Return from subroutine
-    0x6001  :   RTI     --  Return from interrupt
+    0x20    :   CLC     --  Clear carry
+    0x21    :   SEC     --  Set carry
+    0x22    :   TAW     --  Transfer A to W 
+    0x23    :   TWA     --  Transfer W to A 
+    0x24    :   DUP     --  Duplicate A 
+    0x25    :   XAB     --  Exchange A and B
+    0x26    :   POP     --  Pop A
+    0x27    :   RAS     --  Roll ALU stack: A => C; C => B; B => A;
+    0x28    :   ROR     --  Rotate A right (by mask in B) and set C
+    0x29    :   ROL     --  Rotate A left (by mask in B) and set C
+    0x2A    :   ADC     --  Add with carry: A = B + A + Cy
+    0x2B    :   SBC     --  Subtract with carry: A = B + ~A + Cy
+    0x2C    :   AND     --  Logical AND: A = B & A
+    0x2D    :   ORL     --  Logical OR:  A = B | A
+    0x2E    :   XOR     --  Logical XOR: A = B ^ A
+    0x2F    :   HLT     --  Halt processor
+    0x1020  :   RTS     --  Return from subroutine
+    0x1021  :   RTI     --  Return from interrupt
     
 Implementation
 --------------
@@ -141,13 +141,13 @@ to the defaults given for the ISE 10.1i SP3 CPLD fitter.
 
 The ISE 10.1i SP3 implementation results are as follows:
 
-    Number Macrocells Used:              72/72  (100%)
-    Number P-terms Used:                335/360 ( 93%)
+    Number Macrocells Used:              68/72  ( 95%)
+    Number P-terms Used:                330/360 ( 92%)
     Number Registers Used:               49/72  ( 69%)
     Number of Pins Used:                 14/34  ( 42%)
-    Number Function Block Inputs Used:  132/144 ( 92%)
+    Number Function Block Inputs Used:  122/144 ( 85%)
     
-    Best Case Achievable (XC9572-7):    26.000 ns period (38.462 MHz)
+    Best Case Achievable (XC9572-7):    23.500 ns period (42.553 MHz)
 
 Status
 ------

@@ -37,18 +37,18 @@
 
 //  Direct Instructions
 
-localparam pEXE  = 5'b00000;    // EXE  : Execute(Op);IR<=*(I'=I+1);Op<=0;
-localparam pLDK  = 5'b00001;    // LDK  : IR<=*(I'=I+1);{A,B,C}<={Op,A,B};Op<=0;
-localparam pLDL  = 5'b00010;    // LDL  : {A,B,C}<={*(W+Op),A,B};
+localparam pPFX  = 5'b00000;    // PFX  : IR<=*(I'=I+1); Op<=( Op|IR[3:0])<<4;
+localparam pNFX  = 5'b00001;    // NFX  : IR<=*(I'=I+1); Op<=(~Op|IR[3:0])<<4;
+localparam pEXE  = 5'b00010;    // EXE  : Execute(Op);IR<=*(I'=I+1);Op<=0;
+localparam pLDK  = 5'b00011;    // LDK  : IR<=*(I'=I+1);{A,B,C}<={Op,A,B};Op<=0;
+localparam pLDL  = 5'b00100;    // LDL  : {A,B,C}<={*(W+Op),A,B};
                                 //      : IR<=*(I'=I+1);Op<=0; 
-localparam pLDNL = 5'b00011;    // LDNL : {A,B,C}<={*(A+Op),A,B};
+localparam pLDNL = 5'b00101;    // LDNL : {A,B,C}<={*(A+Op),A,B};
                                 //      : IR<=*(I'=I+1);Op<=0;  
-localparam pSTL  = 5'b00100;    // STL  : *(W+Op)<=A;{A,B,C}<={B,C,C};
+localparam pSTL  = 5'b00110;    // STL  : *(W+Op)<=A;{A,B,C}<={B,C,C};
                                 //      : IR<=*(I'=I+1);Op<=0;
-localparam pSTNL = 5'b00101;    // STNL : *(A+Op)<=B;{A,B,C}<={C,C,C};
+localparam pSTNL = 5'b00111;    // STNL : *(A+Op)<=B;{A,B,C}<={C,C,C};
                                 //      : IR<=*(I'=I+1);Op<=0;
-localparam pNFX  = 5'b00110;    // NFX  : IR<=*(I'=I+1); Op<=(~Op|IR[3:0])<<4;
-localparam pPFX  = 5'b00111;    // PFX  : IR<=*(I'=I+1); Op<=( Op|IR[3:0])<<4;
 localparam pIN   = 5'b01000;    // IN   : {A,B,C}<={SPI_Rd16(Op,A),A,B};
                                 //      : IR<=*(I'=I+1);Op<=0;
 localparam pINB  = 5'b01001;    // INB  : {A,B,C}<={SPI_Rd08(Op,A),A,B};
