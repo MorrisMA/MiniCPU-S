@@ -1024,14 +1024,14 @@ end
 always @(*) // Instruction Mnemonics Decode
 begin
     case(I)
-        5'b0_0000   : IDec = "CALL";
-        5'b0_0001   : IDec = "LDK ";
-        5'b0_0010   : IDec = "LDL ";
-        5'b0_0011   : IDec = "LDNL";
-        5'b0_0100   : IDec = "STL ";
-        5'b0_0101   : IDec = "STNL";
-        5'b0_0110   : IDec = "NFX ";
-        5'b0_0111   : IDec = "PFX ";
+        5'b0_0000   : IDec = "PFX ";
+        5'b0_0001   : IDec = "NFX ";
+        5'b0_0010   : IDec = "----";
+        5'b0_0011   : IDec = "LDK ";
+        5'b0_0100   : IDec = "LDL ";
+        5'b0_0101   : IDec = "LDNL";
+        5'b0_0110   : IDec = "STL ";
+        5'b0_0111   : IDec = "STNL";
         5'b0_1000   : IDec = "IN  ";
         5'b0_1001   : IDec = "INB ";
         5'b0_1010   : IDec = "OUT ";
@@ -1039,7 +1039,7 @@ begin
         5'b0_1100   : IDec = "BEQ ";
         5'b0_1101   : IDec = "BLT ";
         5'b0_1110   : IDec = "JMP ";
-        5'b0_1111   : IDec = "----";
+        5'b0_1111   : IDec = "CALL";
         5'b1_0000   : IDec = "CLC ";
         5'b1_0001   : IDec = "SEC ";
         5'b1_0010   : IDec = "TAW ";
