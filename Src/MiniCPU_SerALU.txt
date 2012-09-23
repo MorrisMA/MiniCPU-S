@@ -37,8 +37,7 @@
 
 //  Direct Instructions
 
-localparam pCALL = 5'b00000;    // CALL : *(W-1)<=I;W<=W-1;
-                                //      : IR<=*(I'=I+1+0&Op);Op<=0;                                
+localparam pEXE  = 5'b00000;    // EXE  : Execute(Op);IR<=*(I'=I+1);Op<=0;
 localparam pLDK  = 5'b00001;    // LDK  : IR<=*(I'=I+1);{A,B,C}<={Op,A,B};Op<=0;
 localparam pLDL  = 5'b00010;    // LDL  : {A,B,C}<={*(W+Op),A,B};
                                 //      : IR<=*(I'=I+1);Op<=0; 
@@ -61,7 +60,8 @@ localparam pOUTB = 5'b01011;    // OUTB : SPI_Wr08(Op,A,B);{A,B,C}<={C,C,C};
 localparam pBEQ  = 5'b01100;    // BEQ  : IR<=*(I'=I+1+Z&Op);Op<=0;
 localparam pBLT  = 5'b01101;    // BLT  : IR<=*(I'=I+1+N&Op);Op<=0;
 localparam pJMP  = 5'b01110;    // JMP  : IR<=*(I'=I+1+1&Op);Op<=0;
-localparam pEXE  = 5'b01111;    // EXE  : Execute(Op);IR<=*(I'=I+1);Op<=0;
+localparam pCALL = 5'b01111;    // CALL : *(W'=W-2;)<=I;
+                                //      : IR<=*(I'=I+1+1&Op);Op<=0;                                
 
 //  Indirect Instructions       
 
