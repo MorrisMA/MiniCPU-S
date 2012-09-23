@@ -84,7 +84,7 @@ All of these registers are the same width except Cy, which is a bit register.
 
 A summary of the MiniCPU-S instruction set is provided in the following table:
 
-    0x0-    :   CALL    --  Call subroutine (instruction pointer relative)
+    0xF-    :   EXE     --  Execute Op as indirect instruction
     0x1-    :   LDK     --  Load constant
     0x2-    :   LDL     --  Load local (workspace relative)
     0x3-    :   LDNL    --  Load non-local (TOS pointer relative)
@@ -99,25 +99,25 @@ A summary of the MiniCPU-S instruction set is provided in the following table:
     0xC-    :   BEQ     --  Branch if (TOS == 0)
     0xD-    :   BLT     --  Branch if (TOS < 0)
     0xE-    :   JMP     --  Unconditional jump (instruction pointer relative)
-    0xF-    :   EXE     --  Execute Op as indirect instruction
-    0xF0    :   CLC     --  Clear carry
-    0xF1    :   SEC     --  Set carry
-    0xF2    :   TAW     --  Transfer A to W 
-    0xF3    :   TWA     --  Transfer W to A 
-    0xF4    :   DUP     --  Duplicate A 
-    0xF5    :   XAB     --  Exchange A and B
-    0xF6    :   POP     --  Pop A
-    0xF7    :   RAS     --  Roll ALU stack: A => C; C => B; B => A;
-    0xF8    :   ROR     --  Rotate A right (by mask in B) and set C
-    0xF9    :   ROL     --  Rotate A left (by mask in B) and set C
-    0xFA    :   ADC     --  Add with carry: A = B + A + Cy
-    0xFB    :   SBC     --  Subtract with carry: A = B + ~A + Cy
-    0xFC    :   AND     --  Logical AND: A = B & A
-    0xFD    :   ORL     --  Logical OR:  A = B | A
-    0xFE    :   XOR     --  Logical XOR: A = B ^ A
-    0xFF    :   HLT     --  Halt processor
-    0x60F0  :   RTS     --  Return from subroutine
-    0x60F1  :   RTI     --  Return from interrupt
+    0xF-    :   CALL    --  Call subroutine (instruction pointer relative)
+    0x00    :   CLC     --  Clear carry
+    0x01    :   SEC     --  Set carry
+    0x02    :   TAW     --  Transfer A to W 
+    0x03    :   TWA     --  Transfer W to A 
+    0x04    :   DUP     --  Duplicate A 
+    0x05    :   XAB     --  Exchange A and B
+    0x06    :   POP     --  Pop A
+    0x07    :   RAS     --  Roll ALU stack: A => C; C => B; B => A;
+    0x08    :   ROR     --  Rotate A right (by mask in B) and set C
+    0x09    :   ROL     --  Rotate A left (by mask in B) and set C
+    0x0A    :   ADC     --  Add with carry: A = B + A + Cy
+    0x0B    :   SBC     --  Subtract with carry: A = B + ~A + Cy
+    0x0C    :   AND     --  Logical AND: A = B & A
+    0x0D    :   ORL     --  Logical OR:  A = B | A
+    0x0E    :   XOR     --  Logical XOR: A = B ^ A
+    0x0F    :   HLT     --  Halt processor
+    0x6000  :   RTS     --  Return from subroutine
+    0x6001  :   RTI     --  Return from interrupt
     
 Implementation
 --------------
