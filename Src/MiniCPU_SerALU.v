@@ -43,8 +43,8 @@
 // 
 // Create Date:     18:03:47 08/01/2012 
 // Design Name:     Minimal CPU Implementation for CPLD 
-// Module Name:     MiniCPU_SerALU 
-// Project Name:    MiniCPU 
+// Module Name:     MiniCPU_SerALU.v 
+// Project Name:    C:\XProjects\ISE10.1i\MiniCPU 
 // Target Devices:  CPLDs 
 // Tool versions:   ISE 10.1i SP3
 //
