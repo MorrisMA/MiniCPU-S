@@ -16,14 +16,17 @@ standard or custom serial I/O devices.
 In its current state, the instruction set for the MiniCPU-S has been defined and
 the initial release of the MiniCPU-S System Design Description has been made.
 The MiniCPU-S serial ALU has been coded, tested, and released. The MiniCPU-S Program
-Control Unit (PCU) is in development.
+Control Unit (PCU) has been coded and released, and is currently being tested.
 
 The reference target for the MiniCPU-S are Xilinx XC95xxx CPLDs, although the
-RTL is not restricted to that family. The RTL for the serial ALU of the MiniCPU-S,
+RTL is not restricted to that family. The RTL for the Serial ALU of the MiniCPU-S,
 written in Verilog, has been targeted to the XC9572-7PC44 device. A 16-bit version
-of the serial ALU fits into that device with 95% utilization of the macrocells 
-in that device. The RTL has also been fitted to devices in the Xilinx XC9500XL
-and XC2R Coolrunner II CPLD families, and the Xilinx Spartan 3AN FPGA family.
+of the Serial ALU fits into that device with 71% utilization of the macrocells 
+in that device, and the Serial PCU also fits into an XC9572-7PC44 device with 71%
+utilization of macrocells. (The synthesis and fitting parameters are the same for
+both of these MiniCPU-S componentsThe RTL has also been fitted to devices in the
+Xilinx XC9500XL and XC2R Coolrunner II CPLD families, and the Xilinx Spartan 3AN
+FPGA family.
 
 Instruction Set 
 ---------------
@@ -129,29 +132,69 @@ three Verilog source files:
         MiniCPU_SerALU.txt      -- include file instruction set localparams
         tb_MiniCPU_SerALU.v     -- Rudimentary self-checking testbench
 
+The implementation of the serial PCU for the MiniCPU-S is provided in the following
+three Verilog source files:
+
+    MiniCPU_SerPCU.v            -- RTL source file for the Serial PCU
+        MiniCPU_SerPCU.txt      -- include file instruction set localparams
+        tb_MiniCPU_SerPCU.v     -- Rudimentary self-checking testbench
+
 Synthesis
 ---------
 
 The objective is for the MiniCPU-S to fit into one or two XC9572-xPC84 or XC95108-xPC84
 devices. The MiniCPU-S serial ALU provided at this time meets that objective by
 fitting into a single XC9572-xPC44 device. Special synthesis constraints to achieve
-the fit are: (1) keep hierarchy - NO; (2) collapsing input limit - 20/21; (3) collapsing
-p-term limit - 7. Other synthesis, translation, and fitting parameters can be set 
-to the defaults given for the ISE 10.1i SP3 CPLD fitter. 
+the fit are: 
 
-The ISE 10.1i SP3 implementation results are as follows:
+    Device(s) Specified                         : xc9572-7-PC44
+    Optimization Method                         : SPEED
+    Multi-Level Logic Optimization              : ON
+    Ignore Timing Specifications                : OFF
+    Default Register Power Up Value             : LOW
+    Keep User Location Constraints              : ON
+    What-You-See-Is-What-You-Get                : OFF
+    Exhaustive Fitting                          : ON
+    Keep Unused Inputs                          : OFF
+    Slew Rate                                   : FAST
+    Power Mode                                  : STD
+    Ground on Unused IOs                        : OFF
+    Global Clock Optimization                   : ON
+    Global Set/Reset Optimization               : ON
+    Global Ouput Enable Optimization            : ON
+    FASTConnect/UIM optimzation                 : ON
+    Local Feedback                              : ON
+    Pin Feedback                                : ON
+    Input Limit                                 : 36
+    Pterm Limit                                 : 50
 
-    Number Macrocells Used:              68/72  ( 95%)
-    Number P-terms Used:                330/360 ( 92%)
+Other synthesis, translation, and fitting parameters can be set to the defaults 
+given for the ISE 10.1i SP3 CPLD fitter. 
+
+The ISE 10.1i SP3 implementation results for the Serial ALU are as follows:
+
+    Number Macrocells Used:              51/72  ( 71%)
+    Number P-terms Used:                350/360 ( 98%)
     Number Registers Used:               49/72  ( 69%)
     Number of Pins Used:                 14/34  ( 42%)
-    Number Function Block Inputs Used:  122/144 ( 85%)
+    Number Function Block Inputs Used:  117/144 ( 82%)
     
-    Best Case Achievable (XC9572-7):    23.500 ns period (42.553 MHz)
+    Best Case Achievable (XC9572-7PC44): 14.000 ns period (71.429 MHz)
+
+The ISE 10.1i SP3 implementation results for the Serial PCU are as follows:
+
+    Number Macrocells Used:              52/72  ( 73%)
+    Number P-terms Used:                237/360 ( 66%)
+    Number Registers Used:               51/72  ( 71%)
+    Number of Pins Used:                 18/34  ( 53%)
+    Number Function Block Inputs Used:   97/144 ( 68%)
+    
+    Best Case Achievable (XC9572-7PC44): 14.000 ns period (71.429 MHz)
 
 Status
 ------
 
 Definition and documentation of the instruction set is complete. Design of the
-serial ALU is complete. Initial verification of the serial ALU is complete. Design
-and implementation of the MiniCPU-S PCU is underway.  
+Serial ALU is complete. Initial verification of the Serial ALU is complete. Design
+and implementation of the MiniCPU-S PCU is complete. Verification of the
+Serial PCU is underway; expect to complete Serial PCU verification soon.   

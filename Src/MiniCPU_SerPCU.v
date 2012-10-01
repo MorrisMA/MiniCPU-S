@@ -370,6 +370,26 @@
 //                          of additional multiplexers required to handle the
 //                          special cases previously required.
 //
+//  0.22    12I29   MAM     Simulation was developed. During development of 
+//                          tests specific to IP increment, it became clear that
+//                          this operation's simultaneous use with other
+//                          operations meant that the EU could not supply +1 to
+//                          the PCU using the PCU_DI input while that input was
+//                          being used to transfer an operand from the ALU. For
+//                          this reason, the PCU's IP_Plus_1, W_Plus_1, and
+//                          W_Minus_2 operations were modified so that the old
+//                          PCU_FirstCycle (replaced by PCU_Inc) signal would
+//                          function as the +1 operand. (The-2 is derived from
+//                          +1 by the 1's complement of PCU_Inc control input.)
+//
+//  0.23    12I30   MAM     Changed the operation of the output multiplexer.
+//                          Previously, the PCU register enables and operation
+//                          selects were used to select the register to output
+//                          on PCU_DO. A new control was added, PCU_OE, and this
+//                          is used to select one of the three PCU registers.
+//                          Direct control of PCU_DO works better than indirect
+//                          control.
+//
 //  Additional Comments:
 //
 //  Examining the operations ascribed to the PCU in the description provided
@@ -431,7 +451,7 @@
 //  are loaded by the EU into the instruction register (implemented in the EU)
 //  are an NFX instruction, then on last bit of the instruction fetch, the EU
 //  will assert Op_Inv to force Op to be complemented in compliance with the
-//  specification of the NFX instruction.
+//  specification of the NFX instruction. 
 //
 //  The EU drives the PCU_DI input signal with +1 when an increment or decrement
 //  of IP or W is required. During the first cycle of these operations, the EU
@@ -442,11 +462,13 @@
 //  simply complements the data received from the EU on the PCU_DI input. Since
 //  the carry is suppressed, the complement of a +1 is equivalent to a -2, and
 //  it is in this manner that the EU can perform a +1 operation on IP and/or W,
-//  and a -2 operation on W.
+//  and a -2 operation on W. (Note: the transfer of +1/-2 operands between the
+//  EU and PCU has been modified. See revision 0.22 above. In all other respects
+//  these operations perform as discussed in these last few paragraphs.)
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-`define DEBUG   // Enable Test Port of UUT
+//`define DEBUG   // Enable Test Port of UUT
 
 module MiniCPU_SerPCU #(
     parameter N = 16
@@ -462,10 +484,11 @@ module MiniCPU_SerPCU #(
     
     input   Op_En,              // PCU Op Enable
     input   [1:0] Op_Op,        // PCU Op Operation
-
-    input   PCU_Inc,            // PCU Increment IP, W (asserted on first cycle)
     input   Op_Inv,             // PCU Op Invert (Last cycle of NFX)
 
+    input   PCU_Inc,            // PCU Increment IP, W (asserted on first cycle)
+    input   [1:0] PCU_OE,       // PCU Data Output Enable: 2 - Op, 3 - IP
+    
     input   PCU_DI,             // PCU Serial Input
     input   ALU_DI,             // ALU Serial Output (Output from ALU)
 
@@ -661,20 +684,20 @@ begin
 end
 
 ////////////////////////////////////////////////////////////////////////////////
+//
+//  PCU Data Output Multiplexer
+//
 
-//  Output Multiplexer
-
-assign OE_IP = IP_En & (~|IP_Op);
-assign OE_W  = W_En  & (~|W_Op );
+assign Op_LSB = (IP_Op == pIP_Plus_Op);
 
 always @(*)
 begin
-    if(OE_IP)
-        PCU_DO <= IP[(N - 1)];
-    else if(OE_W)
-        PCU_DO <=  W[(N - 1)];
-    else
-        PCU_DO <= Op[(N - 1)];
+    case(PCU_OE)
+        pOE_W   : PCU_DO <=  W[(N - 1)];    // Transfer W to A
+        pOE_Op  : PCU_DO <= ((Op_LSB) ? Op[0] : Op[(N - 1)]); // Data/Addresses
+        pOE_IP  : PCU_DO <= IP[(N - 1)];    // Branch/Return Addresses
+        default : PCU_DO <= 0;
+    endcase
 end
 
 endmodule
