@@ -22,9 +22,9 @@ The reference target for the MiniCPU-S are Xilinx XC95xxx CPLDs, although the
 RTL is not restricted to that family. The RTL for the Serial ALU of the MiniCPU-S,
 written in Verilog, has been targeted to the XC9572-7PC44 device. A 16-bit version
 of the Serial ALU fits into that device with 71% utilization of the macrocells 
-in that device, and the Serial PCU also fits into an XC9572-7PC44 device with 71%
+in that device. The Serial PCU also fits into an XC9572-7PC44 device with only 73%
 utilization of macrocells. (The synthesis and fitting parameters are the same for
-both of these MiniCPU-S componentsThe RTL has also been fitted to devices in the
+both of these MiniCPU-S components.) The RTL has also been fitted to devices in the
 Xilinx XC9500XL and XC2R Coolrunner II CPLD families, and the Xilinx Spartan 3AN
 FPGA family.
 
