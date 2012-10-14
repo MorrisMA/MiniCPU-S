@@ -68,7 +68,7 @@ the relative offset required is contained in a single byte instruction. All bran
 and jumps less than ±256 can be encoded in two bytes: NFX/PFX, CALL/BEQ/BLT/JMP.
 
 As indicated above, all addresses are relative to the instruction pointer, but also
-from a workspace pointer which provides the functionality of a external data memory
+from a workspace pointer which provides the functionality of an external data memory
 stack pointer. Thus, the workspace pointer, if appropriately adjusted to allocate
 local variables, provides workspace pointer relative (stack pointer indexed)
 addressing of the first 16 of these variables in a single byte instruction.
@@ -83,7 +83,7 @@ The programmer visible/accessible registers of the MiniCPU-S are:
     C   :   ALU register stack Bottom-Of-Stack (BOS)
     Cy  :   ALU carry register
 
-All of these registers are the same width except Cy, which is a bit register.
+All of these registers are the same width (16 bits) except Cy, which is a bit register.
 
 A summary of the MiniCPU-S instruction set is provided in the following table:
 
@@ -174,10 +174,10 @@ given for the ISE 10.1i SP3 CPLD fitter.
 The ISE 10.1i SP3 implementation results for the Serial ALU are as follows:
 
     Number Macrocells Used:              51/72  ( 71%)
-    Number P-terms Used:                350/360 ( 98%)
+    Number P-terms Used:                325/360 ( 91%)
     Number Registers Used:               49/72  ( 69%)
-    Number of Pins Used:                 14/34  ( 42%)
-    Number Function Block Inputs Used:  117/144 ( 82%)
+    Number of Pins Used:                 13/34  ( 39%)
+    Number Function Block Inputs Used:  126/144 ( 88%)
     
     Best Case Achievable (XC9572-7PC44): 14.000 ns period (71.429 MHz)
 
@@ -196,5 +196,33 @@ Status
 
 Definition and documentation of the instruction set is complete. Design of the
 Serial ALU is complete. Initial verification of the Serial ALU is complete. Design
-and implementation of the MiniCPU-S PCU is complete. Verification of the
-Serial PCU is underway; expect to complete Serial PCU verification soon.   
+and implementation of the MiniCPU-S PCU is complete. Verification of the Serial
+PCU is underway; expect to complete Serial PCU verification soon.
+
+Other Notes
+-----------
+
+Integration of the two modules into a single CPLD has been completed. This effort
+resulted in some changes to the operation of some instructions in the Serial ALU
+module. In general, the shift direction for all direct instructions was set as MSB
+first, and the shift direction for all indirect instructions was set for LSB first.
+This change was implemented in order to allow the non-local base address in the ALU
+TOS (A) to be shifted into the Serial PCU and summed with the operand register to
+form the non-local memory address. With the previous default shift direction of MSB
+first for all instructions, to compute the non-local address would have required 
+a holding register for the non-local base address in the Serial PCU and another
+cycle to compute the final non-local address. Thus, the default shift direction
+for the direct instructions was set to MSB first, and the shift direction of the
+indirect instructions was set for LSB first. This allows the indirect POP instruction
+to be used by the EU to sum the relative offset in Op and the base in A in a single
+cycle. The final non-local address is left in Op, and the ALU stack is cleaned up
+automatically.
+
+Some other optimizations were included when this change was implemented. First,
+the Cy and A registers were separated into separate always blocks. Second, each
+ALU register's definitiion was changed from one that used the localparams defined
+in the include file to one that was explicitly and fully defined. This means that
+the case statements no longer require a default selection. Since a number of
+instructions never use the ALU, some encoding of these operations to allow additional
+logic optimization by the synthesizer was used to reduce the number of p-terms used
+and maintain the performance of the module. 

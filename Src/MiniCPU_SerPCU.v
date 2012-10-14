@@ -489,8 +489,8 @@ module MiniCPU_SerPCU #(
     input   PCU_Inc,            // PCU Increment IP, W (asserted on first cycle)
     input   [1:0] PCU_OE,       // PCU Data Output Enable: 2 - Op, 3 - IP
     
-    input   PCU_DI,             // PCU Serial Input
     input   ALU_DI,             // ALU Serial Output (Output from ALU)
+    input   PCU_DI,             // PCU Serial Input
 
 `ifndef DEBUG
     output  reg PCU_DO          // PCU Serial Output
@@ -505,7 +505,7 @@ module MiniCPU_SerPCU #(
 //  Local Parameters
 //
 
-`include "Src\MiniCPU_SerPCU.txt"
+`include "MiniCPU_SerPCU.txt"
 
 ////////////////////////////////////////////////////////////////////////////////
 //

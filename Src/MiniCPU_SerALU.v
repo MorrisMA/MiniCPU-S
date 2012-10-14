@@ -131,6 +131,36 @@
 //                          previous definition which duplicated the input byte
 //                          in both halves of the TOS.
 //
+//  1.00    12J13   MAM     When developing the PCU, determined that the compu-
+//                          tation of the non-local address required that the 
+//                          A register be shifted out LSB first rather than MSB
+//                          first. When this change was inserted into the case
+//                          statements, it resulted in a design which would not
+//                          fit into the CPLD in which the Serial ALU had been
+//                          fitting, i.e. the XC9572-7PC44. The fitter required
+//                          the next larger CPLD, i.e. XC95108-7PC84, to fit the
+//                          simple change made to the POP instruction. Thus, a
+//                          change was made to all of the case statements, which
+//                          entailed changing the selects from localparams into
+//                          5-bit constants and removing the default case, i.e.
+//                          fully specifying the case statements. To simplify
+//                          this operation, the carry and A registers were sepa-
+//                          rated into their own always blocks. Putting all of
+//                          encoding directly into the case statements allowed
+//                          the definition of two default cases: one for left
+//                          shifts and one for right shifts. All direct instruc-
+//                          tions (I[4]==0) perform left shifts, and indirect
+//                          instructions all perform right shifts. In addition,
+//                          some additional defaults were included for instruc-
+//                          tions which do not use the ALU. The result is that
+//                          Serial ALU fits into the XC9572-7PC44 with the new
+//                          functionality, and maintains its performance. There
+//                          is room for additional optimization, but that will
+//                          be left for another time.
+//
+//  1.01    12J13   MAM     Restored port list modifications that aid in the
+//                          interconnection of the Serial PCU and Serial ALU.
+//
 // Additional Comments:
 //
 //  The ALU is presented with a parallel function code when an operation is to
@@ -151,14 +181,13 @@ module MiniCPU_SerALU #(
     input   Rst,
     input   Clk,
 
-    input   CE,
-    input   [4:0] I,
+    input   ALU_En,
+    input   [4:0] ALU_Op,
 
-    input   DI,
-    input   Op,
-    input   W,
-
-    output  DO,
+    input   PCU_DI,
+    input   ALU_DI,
+    output  reg ALU_DO,
+    
     output  Zer,
 
 `ifndef DEBUG
@@ -181,10 +210,13 @@ module MiniCPU_SerALU #(
 //  Module Declarations
 //
 
+wire    CE;                     // Maps to ALU_En
+wire    [4:0] I;                // Maps to ALU_Op
+wire    Op, W;                  // Maps to PCU_DI
+wire    [(N - 1):0] DI;         // Maps to ALU_DI
+
 wire    Sub;
 wire    Ai, Bi, Ci, Sum, Co;
-
-reg     ALU_DO;
 
 reg     [(N - 1):0] A, B, C;
 reg     Cy;
@@ -202,6 +234,14 @@ assign TstPort[47:32] = A;
 assign TstPort[31:16] = B;
 assign TstPort[15: 0] = C;
 `endif
+
+//  Map ports to internal signals
+
+assign CE = ALU_En;
+assign I  = ALU_Op;
+assign Op = PCU_DI;
+assign W  = PCU_DI;
+assign DI = ALU_DI;
 
 //  ALU Serial Adder
 
@@ -222,70 +262,123 @@ assign Neg = A[(N-1)];
 //  ALU Register A and Carry Register 
 //      A register provides the right operand of any two operand ALU functions
 //      A is automatically pushed or popped as required.
-//      A is generally rotated left, i.e. MSB first, except for the case
-//          where ROR or ADC/SBC being performed. In the case of these three
-//          instructions, the A operand always rotates LSB first. In the case of
-//          ADC/SBC, A rotates LSB first because binary arithmetic progresses
-//          from LSB to MSB. In these three cases, the LSB of A shifts into the
-//          MSB of A so that at the completion of these instructions, the ALU's
-//          result has fully replaced A.
+//      A is generally rotated right, i.e. LSB first, except for ROL/LDK/LDL/
+//          LDNL/STL/STNL/IN/INB/OUT/OUTB instructions. For these instructions,
+//          A (and the other ALU stack registers) rotate left, i.e. MSB first.
+//          Rotating right is required for all arithmetic and logic operations,
+//          except ROL. Shifting right is required for the computation of the
+//          non-local addresses, A + Op, the result of which is loaded into Op
+//          prior to being output to the memory device. In the case of most dual
+//          operand arithmetic and logic instructions, the A and B operands
+//          shift LSB first (except ROL - B shifts right and A shifts left). The
+//          single bit ALU result is shifted into the MSB of A, and the LSB of C
+//          is shifted into the MSB of B. Thus, the operands are removed from
+//          the stack and the result is pushed onto the ALU stack so tha the ALU
+//          stack is properly adjusted without the need for any extra cycles.
 
 always @(posedge Clk)
 begin
     if(Rst)
-        {Cy, A} <= #1 0;
+        Cy <= #1 0;
     else if(CE)
         case(I)
-            pLDK    : {Cy, A} <= #1 {Cy, A[(N-2):0], Op      };
-            pLDL    : {Cy, A} <= #1 {Cy, A[(N-2):0], DI      };
-            pLDNL   : {Cy, A} <= #1 {Cy, A[(N-2):0], DI      };
-            pSTL    : {Cy, A} <= #1 {Cy, A[(N-2):0], B[(N-1)]};
-            pSTNL   : {Cy, A} <= #1 {Cy, A[(N-2):0], B[(N-1)]};
+            5'b00000 : Cy <= #1 Cy;                     // PFX
+            5'b00001 : Cy <= #1 Cy;                     // NFX
+            5'b00010 : Cy <= #1 Cy;                     // EXE
+            5'b00011 : Cy <= #1 Cy;                     // LDK
+            5'b00100 : Cy <= #1 Cy;                     // LDL
+            5'b00101 : Cy <= #1 Cy;                     // LDNL
+            5'b00110 : Cy <= #1 Cy;                     // STL
+            5'b00111 : Cy <= #1 Cy;                     // STNL
+            5'b01000 : Cy <= #1 Cy;                     // IN
+            5'b01001 : Cy <= #1 Cy;                     // INB
+            5'b01010 : Cy <= #1 Cy;                     // OUT
+            5'b01011 : Cy <= #1 Cy;                     // OUTB
+            5'b01100 : Cy <= #1 Cy;                     // BEQ
+            5'b01101 : Cy <= #1 Cy;                     // BLT
+            5'b01110 : Cy <= #1 Cy;                     // JMP
+            5'b01111 : Cy <= #1 Cy;                     // CALL
+            5'b10000 : Cy <= #1  0;                     // CLC
+            5'b10001 : Cy <= #1  1;                     // SEC
+            5'b10010 : Cy <= #1 Cy;                     // TAW 
+            5'b10011 : Cy <= #1 Cy;                     // TWA
+            5'b10100 : Cy <= #1 Cy;                     // DUP
+            5'b10101 : Cy <= #1 Cy;                     // POP
+            5'b10110 : Cy <= #1 Cy;                     // XAB
+            5'b10111 : Cy <= #1 Cy;                     // RAS
+            5'b11000 : Cy <= #1 (B[0] ? A[0]     : Cy); // ROR
+            5'b11001 : Cy <= #1 (B[0] ? A[(N-1)] : Cy); // ROL
+            5'b11010 : Cy <= #1 Co;                     // ADC
+            5'b11011 : Cy <= #1 Co;                     // SBC
+            5'b11100 : Cy <= #1 Cy;                     // AND
+            5'b11101 : Cy <= #1 Cy;                     // ORL
+            5'b11110 : Cy <= #1 Cy;                     // XOR
+            5'b11111 : Cy <= #1 Cy;                     // HLT
+        endcase
+end
 
-            pIN     : {Cy, A} <= #1 {Cy, {A[(N-2):    0], DI}};
-            pINB    : {Cy, A} <= #1 {Cy, {A[(N-2):(N/2)], 1'b0},
-                                         {A[((N/2)-2):0], DI  }};
-
-            pOUT    : {Cy, A} <= #1 {Cy, {A[(N-2):    0], B[(N-1)]}};
-            pOUTB   : {Cy, A} <= #1 {Cy, {A[(N-2):(N/2)], B[(N-1)]},
-                                         {A[((N/2)-2):0], B[((N/2)-1)]}};
-
-            pCLC    : {Cy, A} <= #1 {1'b0, A[(N-2):0], A[(N-1)]};
-            pSEC    : {Cy, A} <= #1 {1'b1, A[(N-2):0], A[(N-1)]};
-            
-            pTAW    : {Cy, A} <= #1 {Cy, A[(N-2):0], B[(N-1)]};
-            pTWA    : {Cy, A} <= #1 {Cy, A[(N-2):0], W       };
-
-            pDUP    : {Cy, A} <= #1 {Cy, A[(N-2):0], A[(N-1)]};
-            pXAB    : {Cy, A} <= #1 {Cy, A[(N-2):0], B[(N-1)]};
-            pPOP    : {Cy, A} <= #1 {Cy, A[(N-2):0], B[(N-1)]};
-            pRAS    : {Cy, A} <= #1 {Cy, A[(N-2):0], B[(N-1)]};
-
-            pROR    : {Cy, A} <= #1 ((B[0]) ? {A[0], {A[0], A[(N-1):1]}}
-                                            : {Cy, A} );
-            pROL    : {Cy, A} <= #1 ((B[0]) ? {A[(N-1)], {A[(N-2):0], A[(N-1)]}}
-                                            : {Cy, A} );
-            pADC    : {Cy, A} <= #1 {Co, Sum, A[(N-1):1]};
-            pSBC    : {Cy, A} <= #1 {Co, Sum, A[(N-1):1]};
-            pAND    : {Cy, A} <= #1 {Cy, A[(N-2):0], (B[(N-1)] & A[(N-1)])};
-            pORL    : {Cy, A} <= #1 {Cy, A[(N-2):0], (B[(N-1)] | A[(N-1)])};
-            pXOR    : {Cy, A} <= #1 {Cy, A[(N-2):0], (B[(N-1)] ^ A[(N-1)])};
-            
-            default : {Cy, A} <= #1 {Cy, A[(N-2):0], A[(N-1)]};
+always @(posedge Clk)
+begin
+    if(Rst)
+        A <= #1 0;
+    else if(CE)
+        case(I)
+            5'b00000 : A <= #1 {A[(N-2):0],       Op};                  // PFX
+            5'b00001 : A <= #1 {A[(N-2):0],       Op};                  // NFX
+            5'b00010 : A <= #1 {A[(N-2):0],       Op};                  // EXE
+            5'b00011 : A <= #1 {A[(N-2):0],       Op};                  // LDK
+            5'b00100 : A <= #1 {A[(N-2):0],       DI};                  // LDL
+            5'b00101 : A <= #1 {A[(N-2):0],       DI};                  // LDNL
+            5'b00110 : A <= #1 {A[(N-2):0], B[(N-1)]};                  // STL
+            5'b00111 : A <= #1 {A[(N-2):0], B[(N-1)]};                  // STNL
+            //
+            5'b01000 : A <= #1  {A[ (N-2)   :    0], DI   };            // IN
+            5'b01001 : A <= #1 {{A[ (N-2)   :(N/2)], 1'b0},             // INB
+                                {A[((N/2)-2):    0], DI  }};            // INB
+            5'b01010 : A <= #1  {A[ (N-2)   :    0], B[(N-1)]     };    // OUT
+            5'b01011 : A <= #1 {{A[ (N-2)   :(N/2)], B[ (N-1)   ]},     // OUTB
+                                {A[((N/2)-2):    0], B[((N/2)-1)]}};    // OUTB
+            //
+            5'b01100 : A <= #1 {A[(N-2):0], A[(N-1)]};                  // BEQ
+            5'b01101 : A <= #1 {A[(N-2):0], A[(N-1)]};                  // BLT
+            5'b01110 : A <= #1 {A[(N-2):0], A[(N-1)]};                  // JMP
+            5'b01111 : A <= #1 {A[(N-2):0], A[(N-1)]};                  // CALL
+            //
+            5'b10000 : A <= #1 {A[0], A[(N-1):1]};                      // CLC
+            5'b10001 : A <= #1 {A[0], A[(N-1):1]};                      // SEC
+            5'b10010 : A <= #1 {B[0], A[(N-1):1]};                      // TAW 
+            5'b10011 : A <= #1 {   W, A[(N-1):1]};                      // TWA
+            5'b10100 : A <= #1 {A[0], A[(N-1):1]};                      // DUP
+            5'b10101 : A <= #1 {B[0], A[(N-1):1]};                      // POP
+            5'b10110 : A <= #1 {B[0], A[(N-1):1]};                      // XAB
+            5'b10111 : A <= #1 {B[0], A[(N-1):1]};                      // RAS
+            //
+            5'b11000 : A <= #1 ((B[0]) ? {A[0], A[(N-1):1]}             // ROR
+                                       :  A                    );       // ROR
+            5'b11001 : A <= #1 ((B[0]) ? {A[(N-2):0], A[(N-1)]}         // ROL
+                                       :  A                    );       // ROL
+            5'b11010 : A <= #1 {Sum,  A[(N-1):1]};                      // ADC
+            5'b11011 : A <= #1 {Sum,  A[(N-1):1]};                      // SBC
+            5'b11100 : A <= #1 {(B[0] & A[0]),  A[(N-1):1]};            // AND
+            5'b11101 : A <= #1 {(B[0] | A[0]),  A[(N-1):1]};            // ORL
+            5'b11110 : A <= #1 {(B[0] ^ A[0]),  A[(N-1):1]};            // XOR
+            5'b11111 : A <= #1 {(B[0] ^ A[0]), A[(N-1):1]};             // HLT
         endcase
 end
 
 //  ALU Register B
 //      B register provides the left operand of any two operand ALU functions
 //      B is automatically pushed or popped as required.
-//      B is generally rotated left, i.e. MSB first, except for the case
-//          where ROR/ROL or ADC/SBC being performed. In the case of these four
-//          instructions, the B operand always rotates LSB first. In the case of
-//          ROR/ROL, it rotates in this manner because the shift mask in B needs
-//          to rotate LSB first. In the case of ADC/SBC, it rotates LSB first
-//          because binary arithmetic progresses from LSB to MSB. In either of
-//          these cases, the LSB of C shifts into the MSB of B so that at the
-//          completion of these instructions, C has fully replaced B.
+//      B is generally rotated right, i.e. LSB first, except for LDK/LDL/LDNL/
+//          STL/STNL/IN/INB/OUT/OUTB instructions. For these 9 instructions, B
+//          (and the other ALU stack registers) rotate left, i.e. MSB first.
+//          Rotating right is required for all arithmetic and logic operations.
+//          In the case of dual operand arithmetic and logic instructions, the A
+//          and B operands shift LSB first. The single bit ALU result is shifted
+//          into the MSB of A, and the LSB of C is shifted into the MSB of B.
+//          Thus, the operands are removed from the stack and the result is
+//          pushed onto the ALU stack so tha the ALU stack is properly adjusted
+//          without the need for any extra cycles.
 
 always @(posedge Clk)
 begin
@@ -293,51 +386,57 @@ begin
         B <= #1 0;
     else if(CE)
         case(I)
-            pLDK    : B <= #1 {B[(N-2):0], A[(N-1)]};
-            pLDL    : B <= #1 {B[(N-2):0], A[(N-1)]};
-            pLDNL   : B <= #1 {B[(N-2):0], A[(N-1)]};
-            pSTL    : B <= #1 {B[(N-2):0], C[(N-1)]};
-            pSTNL   : B <= #1 {B[(N-2):0], C[(N-1)]};
-
-            pIN     : B <= #1  {B[(N-2):    0], A[(N-1)]};
-            pINB    : B <= #1 {{B[(N-2):(N/2)], A[(N-1)]},      // High Byte
-                               {B[((N/2)-2):0], A[((N/2)-1)]}}; // Low Byte
-
-            pOUT    : B <= #1  {B[(N-2):0],     C[(N-1)]};
-            pOUTB   : B <= #1 {{B[(N-2):(N/2)], C[(N-1)]},      // High Byte
-                               {B[((N/2)-2):0], C[((N/2)-1)]}}; // Low Byte
-            
-            pTAW    : B <= #1 {B[(N-2):0], C[(N-1)]};
-            pTWA    : B <= #1 {B[(N-2):0], A[(N-1)]};
-            
-            pDUP    : B <= #1 {B[(N-2):0], A[(N-1)]};
-            pXAB    : B <= #1 {B[(N-2):0], A[(N-1)]};
-            pPOP    : B <= #1 {B[(N-2):0], C[(N-1)]};
-            pRAS    : B <= #1 {B[(N-2):0], C[(N-1)]};
-            
-            pROR    : B <= #1 {C[0], B[(N-1):1]};
-            pROL    : B <= #1 {C[0], B[(N-1):1]};
-            pADC    : B <= #1 {C[0], B[(N-1):1]};
-            pSBC    : B <= #1 {C[0], B[(N-1):1]};
-            
-            pAND    : B <= #1 {B[(N-2):0], C[(N-1)]};
-            pORL    : B <= #1 {B[(N-2):0], C[(N-1)]};
-            pXOR    : B <= #1 {B[(N-2):0], C[(N-1)]};
-
-            default : B <= #1 {B[(N-2):0], B[(N-1)]};
+            5'b00000 : B <= #1 {B[(N-2):0], C[(N-1)]};                  // PFX
+            5'b00001 : B <= #1 {B[(N-2):0], C[(N-1)]};                  // NFX
+            5'b00010 : B <= #1 {B[(N-2):0], A[(N-1)]};                  // EXE
+            5'b00011 : B <= #1 {B[(N-2):0], A[(N-1)]};                  // LDK
+            5'b00100 : B <= #1 {B[(N-2):0], A[(N-1)]};                  // LDL
+            5'b00101 : B <= #1 {B[(N-2):0], A[(N-1)]};                  // LDNL
+            5'b00110 : B <= #1 {B[(N-2):0], C[(N-1)]};                  // STL
+            5'b00111 : B <= #1 {B[(N-2):0], C[(N-1)]};                  // STNL
+            5'b01000 : B <= #1  {B[ (N-2)   :    0], A[ (N-1)   ]};     // IN
+            5'b01001 : B <= #1 {{B[ (N-2)   :(N/2)], A[ (N-1)   ]},     // INB
+                                {B[((N/2)-2):    0], A[((N/2)-1)]}};    // INB
+            5'b01010 : B <= #1  {B[ (N-2)   :    0], C[ (N-1)   ]};     // OUT
+            5'b01011 : B <= #1 {{B[ (N-2)   :(N/2)], C[ (N-1)   ]},     // OUTB
+                                {B[((N/2)-2):    0], C[((N/2)-1)]}};    // OUTB
+            5'b01100 : B <= #1 {B[(N-2):0], B[(N-1)]};                  // BEQ
+            5'b01101 : B <= #1 {B[(N-2):0], B[(N-1)]};                  // BLT
+            5'b01110 : B <= #1 {B[(N-2):0], B[(N-1)]};                  // JMP
+            5'b01111 : B <= #1 {B[(N-2):0], B[(N-1)]};                  // CALL
+            //
+            5'b10000 : B <= #1 {B[0], B[(N-1):1]};                      // CLC
+            5'b10001 : B <= #1 {B[0], B[(N-1):1]};                      // SEC
+            5'b10010 : B <= #1 {C[0], B[(N-1):1]};                      // TAW 
+            5'b10011 : B <= #1 {A[0], B[(N-1):1]};                      // TWA
+            5'b10100 : B <= #1 {A[0], B[(N-1):1]};                      // DUP
+            5'b10101 : B <= #1 {C[0], B[(N-1):1]};                      // POP
+            5'b10110 : B <= #1 {A[0], B[(N-1):1]};                      // XAB
+            5'b10111 : B <= #1 {C[0], B[(N-1):1]};                      // RAS
+            //
+            5'b11000 : B <= #1 {C[0], B[(N-1):1]};                      // ROR
+            5'b11001 : B <= #1 {C[0], B[(N-1):1]};                      // ROL
+            5'b11010 : B <= #1 {C[0], B[(N-1):1]};                      // ADC
+            5'b11011 : B <= #1 {C[0], B[(N-1):1]};                      // SBC
+            5'b11100 : B <= #1 {C[0], B[(N-1):1]};                      // AND
+            5'b11101 : B <= #1 {C[0], B[(N-1):1]};                      // ORL
+            5'b11110 : B <= #1 {C[0], B[(N-1):1]};                      // XOR
+            5'b11111 : B <= #1 {C[0], B[(N-1):1]};                      // HLT
         endcase
 end
 
 //  ALU Register C
 //      C is automatically pushed or popped as required.
-//      C is generally rotated left, i.e. MSB first, except for the case
-//          where ROR/ROL or ADC/SBC being performed. In the case of these four
-//          instructions, the B operand always rotates LSB first. In the case of
-//          ROR/ROL, it rotates in this manner because the shift mask in B needs
-//          to rotate LSB first. In the case of ADC/SBC, it rotates LSB first
-//          because binary arithmetic progresses from LSB to MSB. In either of
-//          these cases, the LSB of C shifts into the MSB of B so that at the
-//          completion of these instructions, C has fully replaced B.
+//      C is generally rotated right, i.e. LSB first, except for LDK/LDL/LDNL/
+//          STL/STNL/IN/INB/OUT/OUTB instructions. For these 9 instructions, C
+//          (and the other ALU stack registers) rotate left, i.e. MSB first.
+//          Rotating right is required for all arithmetic and logic operations.
+//          In the case of dual operand arithmetic and logic instructions, the A
+//          and B operands shift LSB first. The single bit ALU result is shifted
+//          into the MSB of A, and the LSB of C is shifted into the MSB of B.
+//          Thus, the operands are removed from the stack and the result is
+//          pushed onto the ALU stack so tha the ALU stack is properly adjusted
+//          without the need for any extra cycles.
 
 always @(posedge Clk)
 begin
@@ -345,28 +444,40 @@ begin
         C <= #1 0;
     else if(CE)
         case(I)
-            pLDK    : C <= #1 {C[(N-2):0], B[(N-1)]};
-            pLDL    : C <= #1 {C[(N-2):0], B[(N-1)]};
-            pLDNL   : C <= #1 {C[(N-2):0], B[(N-1)]};
-            
-            pIN     : C <= #1 {C[(N-2):     0], B[(N-1)]};
-            pINB    : C <= #1 {{C[(N-2):(N/2)], B[(N-1)]},      // High Byte
-                               {C[((N/2)-2):0], B[((N/2)-1)]}}; // Low Byte
-            
-            pOUTB   : C <= #1 {{C[(N-2):(N/2)], C[(N-1)]},      // High Byte
-                               {C[((N/2)-2):0], C[((N/2)-1)]}}; // Low Byte
-            
-            pTWA    : C <= #1 {C[(N-2):0], B[(N-1)]};
-            
-            pDUP    : C <= #1 {C[(N-2):0], B[(N-1)]};
-            pRAS    : C <= #1 {C[(N-2):0], A[(N-1)]};
-
-            pROR    : C <= #1 {C[0], C[(N-1):1]};
-            pROL    : C <= #1 {C[0], C[(N-1):1]};
-            pADC    : C <= #1 {C[0], C[(N-1):1]};
-            pSBC    : C <= #1 {C[0], C[(N-1):1]};
-            
-            default : C <= #1 {C[(N-2):0], C[(N-1)]};
+            5'b00000 : C <= #1 {C[(N-2):0], C[(N-1)]};                  // PFX
+            5'b00001 : C <= #1 {C[(N-2):0], C[(N-1)]};                  // NFX
+            5'b00010 : C <= #1 {C[(N-2):0], B[(N-1)]};                  // EXE
+            5'b00011 : C <= #1 {C[(N-2):0], B[(N-1)]};                  // LDK
+            5'b00100 : C <= #1 {C[(N-2):0], B[(N-1)]};                  // LDL
+            5'b00101 : C <= #1 {C[(N-2):0], B[(N-1)]};                  // LDNL
+            5'b00110 : C <= #1 {C[(N-2):0], C[(N-1)]};                  // STL
+            5'b00111 : C <= #1 {C[(N-2):0], C[(N-1)]};                  // STNL
+            5'b01000 : C <= #1  {C[ (N-2)   :    0], B[ (N-1)   ]};     // IN
+            5'b01001 : C <= #1 {{C[ (N-2)   :(N/2)], B[ (N-1)   ]},     // INB
+                                {C[((N/2)-2):    0], B[((N/2)-1)]}};    // INB
+            5'b01010 : C <= #1  {C[ (N-2)   :    0], C[ (N-1)   ]};     // OUT
+            5'b01011 : C <= #1 {{C[ (N-2)   :(N/2)], C[ (N-1)   ]},     // OUTB
+                                {C[((N/2)-2):    0], C[((N/2)-1)]}};    // OUTB
+            5'b01100 : C <= #1 {C[(N-2):0], C[(N-1)]};                  // BEQ
+            5'b01101 : C <= #1 {C[(N-2):0], C[(N-1)]};                  // BLT
+            5'b01110 : C <= #1 {C[(N-2):0], C[(N-1)]};                  // JMP
+            5'b01111 : C <= #1 {C[(N-2):0], C[(N-1)]};                  // CALL
+            5'b10000 : C <= #1 {C[0], C[(N-1):1]};                      // CLC
+            5'b10001 : C <= #1 {C[0], C[(N-1):1]};                      // SEC
+            5'b10010 : C <= #1 {C[0], C[(N-1):1]};                      // TAW 
+            5'b10011 : C <= #1 {B[0], C[(N-1):1]};                      // TWA
+            5'b10100 : C <= #1 {B[0], C[(N-1):1]};                      // DUP
+            5'b10101 : C <= #1 {C[0], C[(N-1):1]};                      // POP
+            5'b10110 : C <= #1 {C[0], C[(N-1):1]};                      // XAB
+            5'b10111 : C <= #1 {A[0], C[(N-1):1]};                      // RAS
+            5'b11000 : C <= #1 {C[0], C[(N-1):1]};                      // ROR
+            5'b11001 : C <= #1 {C[0], C[(N-1):1]};                      // ROL
+            5'b11010 : C <= #1 {C[0], C[(N-1):1]};                      // ADC
+            5'b11011 : C <= #1 {C[0], C[(N-1):1]};                      // SBC
+            5'b11100 : C <= #1 {C[0], C[(N-1):1]};                      // AND
+            5'b11101 : C <= #1 {C[0], C[(N-1):1]};                      // ORL
+            5'b11110 : C <= #1 {C[0], C[(N-1):1]};                      // XOR
+            5'b11111 : C <= #1 {C[0], C[(N-1):1]};                      // HLT
         endcase
 end
 
@@ -375,18 +486,17 @@ end
 always @(*)
 begin
     case(I)
-        pSTL    : ALU_DO <= A[(N-1)];
-        pSTNL   : ALU_DO <= A[(N-1)];
+        pSTL    : ALU_DO <= A[( N-1)   ];
+        pSTNL   : ALU_DO <= A[ (N-1)   ];
 
-        pOUT    : ALU_DO <= A[(N-1)];
+        pOUT    : ALU_DO <= A[ (N-1)   ];
         pOUTB   : ALU_DO <= A[((N/2)-1)];
 
-        pTAW    : ALU_DO <= A[(N-1)];
+        pTAW    : ALU_DO <= A[0];
+        pPOP    : ALU_DO <= A[0];
 
         default : ALU_DO <= 0;
     endcase
 end
-
-assign DO = ALU_DO;
 
 endmodule
