@@ -36,7 +36,7 @@ module tb_MiniCPU_SerALU;
 //  Parameters
 //
 
-`include "MiniCPU_SerALU.txt"
+`include "./MiniCPU-S/Src/MiniCPU_SerALU.txt"
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -73,12 +73,11 @@ reg     [15:0] MISO, MOSI;
 MiniCPU_SerALU  uut (
                     .Rst(Rst), 
                     .Clk(Clk), 
-                    .CE(CE), 
-                    .I(I), 
-                    .DI(DI), 
-                    .Op(Op[15]), 
-                    .W(W[15]), 
-                    .DO(DO),
+                    .ALU_En(CE), 
+                    .ALU_Op(I), 
+                    .PCU_DI(Op[15]), 
+                    .ALU_DI(DI), 
+                    .ALU_DO(DO),
                     .Zer(Z),
                     .Neg(N),
                     .TstPort(TstPort)

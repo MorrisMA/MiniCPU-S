@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  Copyright 2012 by Michael A. Morris, dba M. A. Morris & Associates
 //
@@ -9,12 +9,12 @@
 //  information storage and retrieval system in violation of the license under
 //  which the source code is released.
 //
-//  The souce code contained herein is free; it may be redistributed and/or
+//  The source code contained herein is free; it may be redistributed and/or
 //  modified in accordance with the terms of the GNU Lesser General Public
 //  License as published by the Free Software Foundation; either version 2.1 of
 //  the GNU Lesser General Public License, or any later version.
 //
-//  The souce code contained herein is freely released WITHOUT ANY WARRANTY;
+//  The source code contained herein is freely released WITHOUT ANY WARRANTY;
 //  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 //  PARTICULAR PURPOSE. (Refer to the GNU Lesser General Public License for
 //  more details.)
@@ -33,7 +33,7 @@
 //  Michael A. Morris
 //  Huntsville, AL
 //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 `timescale 1ns / 1ps
 
@@ -81,7 +81,7 @@
 //  which instructions are being read.
 //
 //  Given the nature of the MiniCPU-S instruction set, most instruction fetches
-//  are expected to be sequential. Further, the memory devices being targetted
+//  are expected to be sequential. Further, the memory devices being targeted
 //  by this design allow the suspension of their SPI cycles, i.e. implement an
 //  SPI HOLD function. The MiniCPU-S EU will use this capability to enhance
 //  overall performance, but this requires that the instruction and data spaces
@@ -168,7 +168,7 @@
 //  with the command or address transfer for I/O instructions.
 //
 //  The following table summarizes the address computation and transfer cycles
-//  discussed in the preceeding paragraphs which are performed by the PCU.
+//  discussed in the preceding paragraphs which are performed by the PCU.
 //  (Note: the address computations for the BEQ and BLT conditional branch
 //  instructions shown in the table below assume that the appropriate condition
 //  code is true. Otherwise a sequential instruction fetch cycle will occur, and
@@ -213,7 +213,7 @@
 //  0x1021:   RTI     -   none                    |   IP
 //  ----------------------------------------------------------------------------
 //
-//  The preceeding table shows the address calculations performed by the PCU
+//  The preceding table shows the address calculations performed by the PCU
 //  during the command transfer cycle to instruction or data memory. As shown in
 //  the table, only a few basic operations are required. However, the table is
 //  incomplete. Not shown in the table are the memory accesses, and therefore
@@ -244,7 +244,7 @@
 //  handling of a CALL instruction in both the EU and the PCU, and add an
 //  unnecessary performance penalty of 50 clock cycles.
 //
-//  Thus, a separate adjustment cycle to adjust W by ¦2 is required of the PCU
+//  Thus, a separate adjustment cycle to adjust W by 2 is required of the PCU
 //  to support the push and pop operations required for the CALL and RTS/RTI
 //  instructions. The choice is made to pre-decrement W for a push operation, so
 //  that W points to the workspace location where the return address if no
@@ -272,7 +272,7 @@
 //  performed during the workspace memory command transfer cycle, and then W can
 //  be shifted out as the address to the workspace memory device. Following the
 //  write of the return address to the workspace, the EU will initiate a new
-//  read of the instruction memory. During those cycles (refer to the preceeding
+//  read of the instruction memory. During those cycles (refer to the preceding
 //  table), the instruction memory target address is computed and shifted out to
 //  the instruction memory device. During the instruction fetch which follows
 //  the address transfer, IP is incremented. These two complete SPI cycles,
@@ -323,7 +323,7 @@
 //  first four bits into IR, and the next four bits into Op. However, if the IR
 //  just loaded is an NFX instruction, then both the current contents of Op and
 //  the new SPI data are complemented during the shift operation. To clear Op,
-//  16 zeroes need to be shifted into its LSB. Since the PCU registers operate
+//  16 zeros need to be shifted into its LSB. Since the PCU registers operate
 //  in a manner similar to those of the ALU, all three registers shift when any
 //  operation requires one or more to shift. Using this characteristic, it is
 //  easy for the EU to clear Op using an operation involving Op or one of the
@@ -335,7 +335,7 @@
 //  In regards to the SPI I/O mode, type, and unit number in the 4 LSBs of Op,
 //  these four bits are duplicated in the EU. Thus, during SPI I/O operations,
 //  Op can be cleared without any concerns about losing the SPI control
-//  settigs. Finally, shifts into Op from the SPI MISO input are enabled by the
+//  settings. Finally, shifts into Op from the SPI MISO input are enabled by the
 //  EU after the IR has been filled. In this way, the EU is able to set the Op
 //  shift controls to complement the input (MISO) and the bits already in the
 //  operand register when an NFX instruction is loaded.
@@ -357,7 +357,7 @@
 //                          and result was a dramatic increase in predicted
 //                          operating speed to ~42 MHz. Applied same settings to
 //                          latest version of the Serial ALU, and its predicted
-//                          operating speed went from ~42 MHz to ~76 MHz. 
+//                          operating speed went from ~42 MHz to ~76 MHz.
 //
 //  0.21    12I28   MAM     Restructured inputs and logic blocks to support
 //                          independent adders and control for each PCU register
@@ -370,7 +370,7 @@
 //                          of additional multiplexers required to handle the
 //                          special cases previously required.
 //
-//  0.22    12I29   MAM     Simulation was developed. During development of 
+//  0.22    12I29   MAM     Simulation was developed. During development of
 //                          tests specific to IP increment, it became clear that
 //                          this operation's simultaneous use with other
 //                          operations meant that the EU could not supply +1 to
@@ -379,7 +379,7 @@
 //                          this reason, the PCU's IP_Plus_1, W_Plus_1, and
 //                          W_Minus_2 operations were modified so that the old
 //                          PCU_FirstCycle (replaced by PCU_Inc) signal would
-//                          function as the +1 operand. (The-2 is derived from
+//                          function as the +1 operand. (The -2 is derived from
 //                          +1 by the 1's complement of PCU_Inc control input.)
 //
 //  0.23    12I30   MAM     Changed the operation of the output multiplexer.
@@ -389,6 +389,19 @@
 //                          is used to select one of the three PCU registers.
 //                          Direct control of PCU_DO works better than indirect
 //                          control.
+//
+//  0.24    13A12   MAM     To implement the Op + W operation, the W register
+//                          needs to shift right as it is being incremented, but
+//                          the input value is 0 by not asserting PCU_Inc. W_En
+//                          needs to be asserted and W_Op needs to be set as
+//                          pW_Plus_1. Since PCU_Inc is not asserted, then the
+//                          carry input in the W adder logic must be suppressed
+//                          by the Op register operation code, pOp_Plus_W, or 
+//                          the W register will be modified at the completion of
+//                          the operation. Thus, (Op_Op == pOp_Plus_W) is added
+//                          to the W register carry multiplexer to suppres all
+//                          carries while the Op + W operation is being perform-
+//                          ed by the Op logic.
 //
 //  Additional Comments:
 //
@@ -424,19 +437,19 @@
 //  Direct implementation of the above 11 operations leads to implementation
 //  problems when attempting to load Op simultaneously with the increment of IP.
 //  Most of these issues can be addressed more readily if separate enables are
-//  provided for each of the PCU registers: IP, W, and Op. In addition, the 
+//  provided for each of the PCU registers: IP, W, and Op. In addition, the
 //  performance of the PCU can also be improved if separate adders are used
 //  instead of the single common adder used in the ALU. The multiplexers needed
 //  to potentially implement two simultaneous operations in the PCU dramatically
 //  reduce the operating speed that the target XC9572-7PC44 can achieve.
 //
-//  Thus, the control inputs were refactored into three 3-bit ports; one for 
-//  each PCU component. In addition, a common input was added to suppress any 
-//  carry remaining in the carry register associated with each serial adder, and 
-//  an additional input, specific to the operand register, was added to 
-//  implement the complement of the register on the last Op bit shifted in 
-//  during an NFX instruction. The implementation results for the PCU with these 
-//  modifications results in FF-FF timing in excess of 76 MHz. This is much 
+//  Thus, the control inputs were re-factored into three 3-bit ports; one for
+//  each PCU component. In addition, a common input was added to suppress any
+//  carry remaining in the carry register associated with each serial adder, and
+//  an additional input, specific to the operand register, was added to
+//  implement the complement of the register on the last Op bit shifted in
+//  during an NFX instruction. The implementation results for the PCU with these
+//  modifications results in FF-FF timing in excess of 76 MHz. This is much
 //  faster than the previous best case achieved with the ALU of 42 MHz.
 //
 //  A final note regarding the interaction between the PCU and EU in order to
@@ -451,14 +464,14 @@
 //  are loaded by the EU into the instruction register (implemented in the EU)
 //  are an NFX instruction, then on last bit of the instruction fetch, the EU
 //  will assert Op_Inv to force Op to be complemented in compliance with the
-//  specification of the NFX instruction. 
+//  specification of the NFX instruction.
 //
 //  The EU drives the PCU_DI input signal with +1 when an increment or decrement
 //  of IP or W is required. During the first cycle of these operations, the EU
 //  also asserts the PCU_FirstCycle input to the PCU. This causes any carry out
 //  from the last serial sum to be ignored during the initial cycle of any PCU
 //  arithmetic operation. This means the PCU_DI == 1 is the +1 value required to
-//  increment the IP or W when required. If a decrement is required, the PCU 
+//  increment the IP or W when required. If a decrement is required, the PCU
 //  simply complements the data received from the EU on the PCU_DI input. Since
 //  the carry is suppressed, the complement of a +1 is equivalent to a -2, and
 //  it is in this manner that the EU can perform a +1 operation on IP and/or W,
@@ -478,17 +491,17 @@ module MiniCPU_SerPCU #(
 
     input   IP_En,              // PCU IP Enable
     input   [1:0] IP_Op,        // PCU IP Operation
-    
+
     input   W_En,               // PCU W Enable
     input   [1:0] W_Op,         // PCU W Operation
-    
+
     input   Op_En,              // PCU Op Enable
     input   [1:0] Op_Op,        // PCU Op Operation
     input   Op_Inv,             // PCU Op Invert (Last cycle of NFX)
 
     input   PCU_Inc,            // PCU Increment IP, W (asserted on first cycle)
     input   [1:0] PCU_OE,       // PCU Data Output Enable: 2 - Op, 3 - IP
-    
+
     input   ALU_DI,             // ALU Serial Output (Output from ALU)
     input   PCU_DI,             // PCU Serial Input
 
@@ -512,7 +525,7 @@ module MiniCPU_SerPCU #(
 //  Declarations
 //
 
-reg     [(N - 1):0] IP, W, Op;  // PCU Registers
+reg     [(N - 1):0] IP, W, Op; // PCU Registers
 
 reg     IP_Ai, IP_Bi;           // IP Serial Adder Data Inputs
 wire    IP_Ci;                  // IP Serial Adder Carry Input
@@ -596,7 +609,7 @@ end
 
 //  W Serial Adder
 
-assign W_Ci = ((PCU_Inc) ? 0 : W_Cy);
+assign W_Ci = ((PCU_Inc | (Op_Op == pOp_Plus_W)) ? 0 : W_Cy);
 
 always @(*)
 begin

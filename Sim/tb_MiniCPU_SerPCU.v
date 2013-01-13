@@ -8,26 +8,26 @@
 // Design Name:     Minimal CPU Implementation for CPLD with SPI Interface
 // Module Name:     C:/XProjects/ISE10.1i/MiniCPU/tb_MiniCPU_SerPCU.v
 // Project Name:    C:/XProjects/ISE10.1i/MiniCPU
-// Target Device:   CPLDs  
+// Target Device:   CPLDs
 // Tool versions:   ISE 10.1i SP3
 //
-// Description: 
+// Description:
 //
 // Verilog Test Fixture created by ISE for module: MiniCPU_SerPCU
 //
 // Dependencies:
-// 
+//
 // Revision:
 //
 //  0.00    12I29   MAM     File Created
 //
 // Additional Comments:
-// 
+//
 ////////////////////////////////////////////////////////////////////////////////
 
 module tb_MiniCPU_SerPCU;
 
-`include "Src\MiniCPU_SerPCU.txt"
+`include "./MiniCPU-S/Src/MiniCPU_SerPCU.txt"
 
 // Inputs
 
@@ -45,7 +45,7 @@ reg     PCU_Inc;            // Suppresses Ci on first cycle of arithmetic ops
 reg     Op_Inv;             // Complements Op if set on last cycle of NFX
 reg     [1:0] PCU_OE;       // Output select for PCU_DO
 
-reg     PCU_DI;             // Input from the Execution Unit (EU) 
+reg     PCU_DI;             // Input from the Execution Unit (EU)
 reg     ALU_DI;             // Input from the Serial ALU (ALU_DO)
 
 // Outputs
@@ -59,19 +59,19 @@ wire    [15:0] IP, W, Op;   // Internal PCU registers brought out on test port
 // Instantiate the Unit Under Test (UUT)
 
 MiniCPU_SerPCU  uut (
-                    .Rst(Rst), 
-                    .Clk(Clk), 
-                    .IP_En(IP_En), 
-                    .IP_Op(IP_Op), 
-                    .W_En(W_En), 
-                    .W_Op(W_Op), 
-                    .Op_En(Op_En), 
-                    .Op_Op(Op_Op), 
+                    .Rst(Rst),
+                    .Clk(Clk),
+                    .IP_En(IP_En),
+                    .IP_Op(IP_Op),
+                    .W_En(W_En),
+                    .W_Op(W_Op),
+                    .Op_En(Op_En),
+                    .Op_Op(Op_Op),
                     .Op_Inv(Op_Inv),
-                    .PCU_Inc(PCU_Inc), 
+                    .PCU_Inc(PCU_Inc),
                     .PCU_OE(PCU_OE),
-                    .PCU_DI(PCU_DI), 
-                    .ALU_DI(ALU_DI), 
+                    .PCU_DI(PCU_DI),
+                    .ALU_DI(ALU_DI),
                     .PCU_DO(PCU_DO),
                     .TstPort({IP, W, Op})
                 );
@@ -96,41 +96,41 @@ initial begin
     ALU_DI  = 0;
 
     // Wait 100 ns for global reset to finish
-    
+
     #101 Rst = 0;
-    
+
     // Add stimulus here
-    
+
     //  IP_Plus_1 Test
     //
     //      This operation is being tested independently of the Op_In shift
-    //      operation which is tested next. The IP is incremented by the EU 
+    //      operation which is tested next. The IP is incremented by the EU
     //      during each instruction fetch.
     //
-    
+
     $display("Testing IP_Plus_1\n");
-    
+
     Tst_IP_Plus_1(IP + 1);          // Increment IP: 16'h0001
     Tst_IP_Plus_1(IP + 1);          // Increment IP: 16'h0002
-    
+
     //  Op_In Test
     //
     //      This operation is being tested independently of the IP_Plus_1
     //      operation which was previously tested. The Op is loaded with the
-    //      four LSBs of every instruction fetched from memory. 
-    
+    //      four LSBs of every instruction fetched from memory.
+
     $display("Testing Op_In\n");
-    
+
     Tst_Op_In(1, 4'hF, 16'hFFF0);   // NFX 15
     Tst_Op_In(0, 4'h5, 16'hFF05);   // PFX 5
     Tst_Op_In(1, 4'h0, 16'h0FAF);   // NFX 0
-    
+
     // Reset Registers
-    
+
     $display("Reset PCU registers\n");
-    
+
     Rst = 1; @(posedge Clk) #1 Rst = 0;
-    
+
     //  Simultaneous IP_Plus_1 and Op_In Test
     //
     //      These two operations are performed simultaneously in the MiniCPU-S
@@ -140,23 +140,23 @@ initial begin
     //      the IP accurately reflect the state of the internal address counter
     //      in the memory device being read.
     //
-    
+
     $display("Testing simultaneous operations: IP_Plus_1, Op_In\n");
-    
+
     #0.01 fork
         Tst_IP_Plus_1(IP + 1);
         Tst_Op_In(1, 4'b0, 16'hFFFF);
     join
-    
+
     //  Simultaneous IP_Plus_Op and Op_Out
     //
     //      This operation is performed by the EU whenever a program branch is
     //      taken. The operation is performed during the transmission of the
     //      new SPI read command to the instruction memory. The adjusted IP is
     //      then available as the address to send to the memory.
-    
+
     $display("Testing simultaneous operations: IP_Plus_Op, Op_Out\n");
-    
+
     #0.01 fork
         Tst_IP_Plus_Op(IP + Op);    // IP' = Op' = 0, since IP = 1, OP = -1
         Tst_Op_Out(1, 0);           // Test Op_Out for IP_Plus_Op
@@ -169,48 +169,77 @@ initial begin
     join
 
     #0.01 fork
-        Tst_IP_Plus_Op(IP + Op);    // IP' = Op' = 0, since IP = 1, OP = -1
+        Tst_IP_Plus_Op(IP + Op);    // IP' = Op' = 0, since IP = 2, OP = -2
         Tst_Op_Out(1, 0);           // Test Op_Out for IP_Plus_Op
     join
-    
+
     //  Test IP_In operation
-    
+
     $display("Testing IP_In\n");
-    
+
     Tst_IP_In(16'h5AA5);
     Tst_IP_In(16'hFFFF);
     Tst_IP_Plus_1(IP + 1);
 
     //  Test IP_In operation
-    
+
     $display("Testing IP_Out\n");
-    
+
     Tst_IP_In(16'h5555);
     Tst_IP_Out(IP);
     Tst_IP_Plus_1(IP + 1);
     Tst_IP_Out(IP);
+    
+    //  Test W_In operation
+    
+    Tst_W_In(16'hAA55, 16'hAA55);
+    Tst_W_In(16'h55AA, 16'h55AA);
+
+    //  Test W_Out operation
+    
+    Tst_W_Out(16'h55AA);
+    Tst_W_In(16'hAA55, 16'hAA55);
+    Tst_W_Out(16'hAA55);
+
+    //  Test W_Plus_1 operation
+    
+    Tst_W_Plus_1(16'hAA56);
+    Tst_W_Plus_1(16'hAA57);
+
+    //  Test W_Minus_2 operation
+    
+    Tst_W_Minus_2(16'hAA55);
 
     //  Test Op_Plus_A operation
-    
+
     $display("Testing Op_Plus_A\n");
-    
+
     Tst_Op_Plus_A(16'hFFFF, Op + 16'hFFFF);
 
+    //  Test Op_Plus_W operation
+
+    $display("Testing Op_Plus_W\n");
+
+    Tst_Op_Out(1, 0);
+    Tst_Op_In(1, 4'b0, 16'hFFFF);
+    Tst_W_Plus_1(16'hAA56);
+    Tst_Op_Plus_W(16'hAA55);
+
     //  Test Op_Out operation
-    
-    $display("Testing Op_Out - Non-Local Address Output\n");
-    
+
+    $display("Testing Op_Out - Address or Operand Output\n");
+
     Tst_Op_Out(1, 0);
 
     // Stop Simulation
-    
+
     $display("Tests Complete - Pass\n");
 
     @(posedge Clk) #1;
     @(posedge Clk) #1;
     @(posedge Clk) #1;
     @(posedge Clk) #1;
-    
+
     $stop;
 end
 
@@ -233,7 +262,7 @@ always #5 Clk = ~Clk;
 
 function [((11 * 8) - 1):0] IP_Str;
     input [1:0] IP_Op;
-    
+
 begin
     case(IP_Op)
         pIP_Out     : IP_Str = "IP_Out    ";
@@ -264,52 +293,52 @@ task Tst_IP_Out;
 begin
     // Bit #15
     @(posedge Clk) #1 IP_En = 0; IP_Op = pIP_Out; PCU_OE = pOE_IP;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #14
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
-    // Bit #13   
+    @(posedge Clk) #1 IP_En = 1;
+    // Bit #13
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #12
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #11
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #10
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #9
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #8
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #7
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #6
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
-    // Bit #5    
+    @(posedge Clk) #1 IP_En = 1;
+    // Bit #5
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #4
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #3
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #2
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #1
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
     // Bit #0
     @(posedge Clk) #1 IP_En = 0;
-    @(posedge Clk) #1 IP_En = 1; 
+    @(posedge Clk) #1 IP_En = 1;
 
     @(posedge Clk) #1 IP_En = 0; IP_Op = 0; PCU_OE = 0;
 
@@ -342,61 +371,61 @@ endtask
 
 task Tst_IP_In;
     input [15:0] Data;
-    
+
 begin
     // Bit #15
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[15];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #14
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[14];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #13
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[13];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #12
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[12];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #11
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[11];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #10
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[10];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #9
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[9];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #8
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[8];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #7
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[7];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #6
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[6];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #5
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[5];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #4
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[4];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #3
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[3];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #2
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[2];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #1
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[1];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
     // Bit #0
     @(posedge Clk) #1 IP_En = 1; IP_Op = pIP_In; PCU_DI = Data[0];
-    @(posedge Clk) #1 IP_En = 0; 
+    @(posedge Clk) #1 IP_En = 0;
 
     #1 if(IP == Data) begin
         $display("\tTest IP_In - Pass\n");
     end else begin
-        $display("\tTest IP_In - Fail: Expected %h, found %h\n",        
+        $display("\tTest IP_In - Fail: Expected %h, found %h\n",
                  Data, IP);
         @(posedge Clk) #1;
         @(posedge Clk) #1;
@@ -419,7 +448,7 @@ endtask
 //      carry in the IP_Cy register and asserts the second input to the adder.
 //      For the remaining 15 cycles, the second input to the adder is 0 because
 //      PCU_Inc is not asserted. Thus, Cy handles the propagation of any inter-
-//      bit carries from the LSB to MSB, and no additional input is required 
+//      bit carries from the LSB to MSB, and no additional input is required
 //      from the EU.
 
 task Tst_IP_Plus_1;
@@ -451,7 +480,7 @@ begin
     #1 if(IP == ExpVal) begin
         $display("\tTest IP_Plus_1 - Pass\n");
     end else begin
-        $display("\tTest IP_Plus_1 - Fail: Expected %h, found %h\n",        
+        $display("\tTest IP_Plus_1 - Fail: Expected %h, found %h\n",
                  ExpVal, IP);
         @(posedge Clk) #1;
         @(posedge Clk) #1;
@@ -465,12 +494,12 @@ endtask
 
 //  Test IP_Plus_Op
 //
-//      Expectation is that the EU will the relative offset in Op to IP while an
-//      read command is being output by the EU to the memory device. At the end
-//      of that 8-bit transfer (16 clock cycles), IP is ready to be output MSB
-//      first using an IP_Out operation. While Op is shifted into the IP adder,
-//      a 0 should be shifted in from the left. At the completion of IP_Plus_Op,
-//      Op should be cleared.
+//      Expectation is that the EU will add the relative offset in Op to IP
+//      while a read command is being output by the EU to the memory device. At
+//      the end of that 8-bit transfer (16 clock cycles), IP is ready to be out-
+//      put MSB first using an IP_Out operation. While Op is shifted into the IP
+//      adder, a 0 should be shifted in from the left. At the completion of
+//      IP_Plus_Op, Op should be cleared.
 
 task Tst_IP_Plus_Op;
     input [15:0] ExpVal;
@@ -515,19 +544,242 @@ endtask
 
 //------------------------------------------------------------------------------
 //
+//  W Operations
+//
+
+function [((11 * 8) - 1):0] W_Str;
+    input [1:0] W_Op;
+
+begin
+    case(W_Op)
+        pW_Out     : W_Str = "W_Out     ";
+        pW_In      : W_Str = "W_In      ";
+        pW_Plus_1  : W_Str = "W_Plus_1  ";
+        pW_Minus_2 : W_Str = "W_Minus_2 ";
+        default    : W_Str = "----------";
+    endcase
+end
+
+endfunction
+
+//  Test W_Out
+//
+//      W_Out is used to shift W into the ALU TOS (A) MSB first
+
+task Tst_W_Out;
+    input [15:0] ExpVal;    // Expected Value of W after shift cycle completes
+
+begin
+W_Op = pW_Out;
+    // Bit #0
+    @(posedge Clk) #1 W_En = 1; PCU_OE = pOE_W;
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    // Bit #4
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    // Bit #8
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    // Bit #12
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+    @(posedge Clk) #1;
+
+    @(posedge Clk) #1 W_En = 0; W_Op = 0; PCU_OE = 0;
+
+    #1 if(W == ExpVal) begin
+        $display("\tTest W_Out - Pass\n");
+    end else begin
+        $display("\tTest W_Out - Fail: Expected %h, found %h\n", ExpVal, W);
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        $stop;               // Stop Simulation
+    end
+end
+
+endtask
+
+//  Test W_In
+//
+//      W_In is used to shift into W the ALU TOS (A) MSB first.
+
+task Tst_W_In;
+    input [15:0] Data;      // Data to shift into
+    input [15:0] ExpVal;    // Expected Value of Op after shift cycle completes
+
+begin
+    // Bit #15
+    @(posedge Clk) #1 W_En = 1; W_Op = pW_In; ALU_DI = Data[15];
+    @(posedge Clk) #1 ALU_DI = Data[14];
+    @(posedge Clk) #1 ALU_DI = Data[13];
+    @(posedge Clk) #1 ALU_DI = Data[12];
+    // Bit #11
+    @(posedge Clk) #1 ALU_DI = Data[11];
+    @(posedge Clk) #1 ALU_DI = Data[10];
+    @(posedge Clk) #1 ALU_DI = Data[ 9];
+    @(posedge Clk) #1 ALU_DI = Data[ 8];
+    // Bit #07
+    @(posedge Clk) #1 ALU_DI = Data[ 7];
+    @(posedge Clk) #1 ALU_DI = Data[ 6];
+    @(posedge Clk) #1 ALU_DI = Data[ 5];
+    @(posedge Clk) #1 ALU_DI = Data[ 4];
+    // Bit #3
+    @(posedge Clk) #1 ALU_DI = Data[ 3];
+    @(posedge Clk) #1 ALU_DI = Data[ 2];
+    @(posedge Clk) #1 ALU_DI = Data[ 1];
+    @(posedge Clk) #1 ALU_DI = Data[ 0];
+
+    @(posedge Clk) #1 W_En = 0; W_Op = 0; ALU_DI = 0;
+
+    #1 if(W == ExpVal) begin
+        $display("\tTest W_In - Pass\n");
+    end else begin
+        $display("\tTest W_In - Fail: Expected %h, found %h\n", ExpVal, W);
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        $stop;               // Stop Simulation
+    end
+end
+
+endtask
+
+//  Test W_Plus_1
+//
+//      There are two uses for W_Plus_1: (1) incrementing W by 1 during return
+//      address fetches from the workspace, and (2) shifting W LSB first without
+//      adding 1 during the computation of local addresses in Op.
+//
+//      In the first case, the PCU_Inc is asserted by the EU during the first
+//      cycle of the operation. PCU_Inc simultaneously suppresses the W_Cy sig-
+//      nal, and sets the right operand of the W serial adder to 1, which 
+//      results in a 1 being added to W.
+//
+//      In the second case, Op_Op is pOp_Plus_W. Since PCU_Inc is not asserted,
+//      (Op_Op == pOp_Plus_W) is used to suppress the W_Cy throughout the entire
+//      cycle. Thus, W simply recirculates, and is simultaneously added to Op.
+//      The resulting sum is stored in Op. 
+//
+//      This task tests the first case, and task Tst_Op_Plus_W tests the second
+//      case.
+
+task Tst_W_Plus_1;
+    input [15:0] ExpVal;
+
+begin
+    // Bit #0
+    @(posedge Clk) #1 W_En = 1; W_Op = pW_Plus_1; PCU_Inc = 1;
+    @(posedge Clk) #1 PCU_Inc = 0;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #4
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #8
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #12
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #16
+    @(posedge Clk) #1 W_En = 0; W_Op = 0;
+
+    #1 if(W == ExpVal) begin
+        $display("\tTest W_Plus_1 - Pass\n");
+    end else begin
+        $display("\tTest W_Plus_1 - Fail: Expected %h, found %h\n",
+                  ExpVal, W);
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        $stop;               // Stop Simulation
+    end
+end
+
+endtask
+
+//  Test W_Minus_2
+//
+//      The W_Minus_2 function is performed prior to pushing the return address
+//      onto the stack. PCU_Inc is asserted during the first cycle to suppress
+//      the residual carry, W_Cy, from affecting the calculation. The W opera-
+//      tion code (W_Op == pW_Minus_2) complements the PCU_Inc signal which re-
+//      sults in -2 being added to W instead of +1.
+
+task Tst_W_Minus_2;
+    input [15:0] ExpVal;
+
+begin
+    // Bit #0
+    @(posedge Clk) #1 W_En = 1; W_Op = pW_Minus_2; PCU_Inc = 1;
+    @(posedge Clk) #1 PCU_Inc = 0;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #4
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #8
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #12
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #16
+    @(posedge Clk) #1 W_En = 0; W_Op = 0;
+
+    #1 if(W == ExpVal) begin
+        $display("\tTest W_Minus_2 - Pass\n");
+    end else begin
+        $display("\tTest W_Minus_2 - Fail: Expected %h, found %h\n",
+                  ExpVal, W);
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        $stop;               // Stop Simulation
+    end
+end
+
+endtask
+
+//------------------------------------------------------------------------------
+//
 //  Op Operations
 //
 
-function [((10 * 8) - 1):0] Op_Str;
+function [((11 * 8) - 1):0] Op_Str;
     input [1:0] Op_Op;
-    
+
 begin
     case(Op_Op)
-        pOp_Out    : Op_Str = "Op_Out   ";
-        pOp_In     : Op_Str = "Op_In    ";
-        pOp_Plus_A : Op_Str = "Op_Plus_A";
-        pOp_Plus_W : Op_Str = "Op_Plus_W";
-        default    : Op_Str = "---------";
+        pOp_Out    : Op_Str = "Op_Out    ";
+        pOp_In     : Op_Str = "Op_In     ";
+        pOp_Plus_A : Op_Str = "Op_Plus_A ";
+        pOp_Plus_W : Op_Str = "Op_Plus_W ";
+        default    : Op_Str = "----------";
     endcase
 end
 
@@ -539,7 +791,7 @@ endfunction
 //      branches; and (2) Op is the memory address for local/non-local accesses.
 //
 //      In the first case, Op is added to IP and the result is stored in IP. The
-//      sum is computed during the SPI output cycle which send the SPI read
+//      sum is computed during the SPI output cycle which sends the SPI read
 //      command to the instruction memory. In this case, Op_En is not gated with
 //      the SPI output/input clock enable signal
 //
@@ -568,79 +820,79 @@ endfunction
 task Tst_Op_Out;
     input IP_En;
     input [15:0] ExpVal;    // Expected Value of Op after shift cycle completes
-    
+
 begin
     Op_Op = pOp_Out;
     if(IP_En) begin
         // Bit #0
         @(posedge Clk) #1 Op_En = 1; PCU_OE = pOE_Op;
-        @(posedge Clk) #1; 
         @(posedge Clk) #1;
-        @(posedge Clk) #1; 
-        // Bit #4   
         @(posedge Clk) #1;
-        @(posedge Clk) #1; 
         @(posedge Clk) #1;
-        @(posedge Clk) #1; 
+        // Bit #4
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
         // Bit #8
         @(posedge Clk) #1;
-        @(posedge Clk) #1; 
         @(posedge Clk) #1;
-        @(posedge Clk) #1; 
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
         // Bit #12
         @(posedge Clk) #1;
-        @(posedge Clk) #1; 
         @(posedge Clk) #1;
-        @(posedge Clk) #1; 
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
     end else begin
         // Bit #15
         @(posedge Clk) #1 Op_En = 0; PCU_OE = pOE_Op;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #14
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
-        // Bit #13   
+        @(posedge Clk) #1 Op_En = 1;
+        // Bit #13
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #12
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #11
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #10
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #9
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #8
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #7
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #6
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
-        // Bit #5    
+        @(posedge Clk) #1 Op_En = 1;
+        // Bit #5
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #4
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #3
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #2
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #1
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
         // Bit #0
         @(posedge Clk) #1 Op_En = 0;
-        @(posedge Clk) #1 Op_En = 1; 
+        @(posedge Clk) #1 Op_En = 1;
     end
 
     @(posedge Clk) #1 Op_En = 0; Op_Op = 0; PCU_OE = 0;
@@ -658,7 +910,7 @@ begin
 end
 
 endtask
-    
+
 //  Test Op_In
 //
 //      Expectation is that the EU asserts Op_En gated by the SPI sample enable.
@@ -675,15 +927,15 @@ endtask
 //      it also provides the expected value of Op at the end of the shift cycle.
 //
 //      The task shifts the data and compares the value of Op with the expected
-//      value provided. If the values match, the shift cycle passes and the 
+//      value provided. If the values match, the shift cycle passes and the
 //      test bench is allowed to proceed to the next step. Otherwise, the cycle
 //      is a failure, and the task stops the simulation.
 
 task Tst_Op_In;
     input Inv;              // 0 - PFX; 1 - NFX;
-    input [ 3:0] Data;      // Data to shift into 
+    input [ 3:0] Data;      // Data to shift into
     input [15:0] ExpVal;    // Expected Value of Op after shift cycle completes
-    
+
 begin
     // Bit #7
     @(posedge Clk) #1 Op_En  = 0;
@@ -694,7 +946,7 @@ begin
     // Bit #6
     @(posedge Clk) #1;
     @(posedge Clk) #1;
-    // Bit #5    
+    // Bit #5
     @(posedge Clk) #1;
     @(posedge Clk) #1;
     // Bit #4
@@ -712,9 +964,9 @@ begin
     // Bit #0
     @(posedge Clk) #1 Op_En = 1; PCU_DI = Data[0]; Op_Inv = Inv;
     @(posedge Clk) #1 Op_En = 0; Op_Inv = 0;
-    
+
     @(posedge Clk) #1 Op_Op = 0; PCU_DI = 0;
-    
+
     #1 if(Op == ExpVal) begin
         $display("\tTest Op_In - Pass\n");
     end else begin
@@ -732,7 +984,7 @@ endtask
 //  Test Op_Plus_A
 //
 //      When access is required to a non-local variable, the address is computed
-//      using Op_Plus_A and stored in Op during the SPI command cycle. The 
+//      using Op_Plus_A and stored in Op during the SPI command cycle. The
 //      target address in Op is output during the subsequent 16-bit address
 //      address cycle using Op_Out. To compute the non-local address, an ALU POP
 //      operation is required which shifts the ALU TOS LSB first, and Op_Plus_A
@@ -745,22 +997,22 @@ task Tst_Op_Plus_A;
 begin
     // Bit #0
     @(posedge Clk) #1 Op_En = 1; Op_Op = pOp_Plus_A; ALU_DI = Data[0];
-    @(posedge Clk) #1 ALU_DI = Data[1]; 
+    @(posedge Clk) #1 ALU_DI = Data[1];
     @(posedge Clk) #1 ALU_DI = Data[2];
-    @(posedge Clk) #1 ALU_DI = Data[3]; 
-    // Bit #4   
+    @(posedge Clk) #1 ALU_DI = Data[3];
+    // Bit #4
     @(posedge Clk) #1 ALU_DI = Data[4];
-    @(posedge Clk) #1 ALU_DI = Data[5]; 
+    @(posedge Clk) #1 ALU_DI = Data[5];
     @(posedge Clk) #1 ALU_DI = Data[6];
-    @(posedge Clk) #1 ALU_DI = Data[7]; 
+    @(posedge Clk) #1 ALU_DI = Data[7];
     // Bit #8
     @(posedge Clk) #1 ALU_DI = Data[8];
-    @(posedge Clk) #1 ALU_DI = Data[9]; 
+    @(posedge Clk) #1 ALU_DI = Data[9];
     @(posedge Clk) #1 ALU_DI = Data[10];
-    @(posedge Clk) #1 ALU_DI = Data[11]; 
+    @(posedge Clk) #1 ALU_DI = Data[11];
     // Bit #12
     @(posedge Clk) #1 ALU_DI = Data[12];
-    @(posedge Clk) #1 ALU_DI = Data[13]; 
+    @(posedge Clk) #1 ALU_DI = Data[13];
     @(posedge Clk) #1 ALU_DI = Data[14];
     @(posedge Clk) #1 ALU_DI = Data[15];
 
@@ -781,7 +1033,57 @@ end
 
 endtask
 
-////////////////////////////////////////////////////////////////////////////////
-      
-endmodule
+//  Test Op_Plus_W
+//
+//      When access is required to a local variable, the address is computed
+//      using Op_Plus_W and stored in Op during the SPI command cycle. The
+//      target address in Op is output during the subsequent 16-bit address
+//      address cycle using Op_Out. To compute the local address, the W and Op
+//      registers are shifted right, and Op_Plus_W computes the sum of Op and W.
+//      The resulting sum is shifted into Op.
 
+task Tst_Op_Plus_W;
+    input [15:0] ExpVal;
+
+begin
+    // Bit #0
+    @(posedge Clk) #1 Op_En = 1; Op_Op = pOp_Plus_W; W_En = 1; W_Op = pW_Plus_1;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #4
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #8
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    // Bit #12
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+    @(posedge Clk) #1 ;
+
+    @(posedge Clk) #1 Op_En = 0; Op_Op = 0; W_En = 0; W_Op = 0;
+
+    #1 if(Op == ExpVal) begin
+        $display("\tTest Op_Plus_W - Pass\n");
+    end else begin
+        $display("\tTest Op_Plus_W - Fail: Expected %h, found %h\n",
+                 ExpVal, Op);
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        @(posedge Clk) #1;
+        $stop;               // Stop Simulation
+    end
+end
+
+endtask
+
+////////////////////////////////////////////////////////////////////////////////
+
+endmodule
