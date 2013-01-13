@@ -1,166 +1,83 @@
 ///////////////////////////////////////////////////////////////////////////////
-
 //
-
 //  Copyright 2012 by Michael A. Morris, dba M. A. Morris & Associates
-
 //
-
 //  All rights reserved. The source code contained herein is publicly released
-
 //  under the terms and conditions of the GNU Lesser Public License. No part of
-
 //  this source code may be reproduced or transmitted in any form or by any
-
 //  means, electronic or mechanical, including photocopying, recording, or any
-
 //  information storage and retrieval system in violation of the license under
-
 //  which the source code is released.
-
 //
-
 //  The source code contained herein is free; it may be redistributed and/or
-
 //  modified in accordance with the terms of the GNU Lesser General Public
-
 //  License as published by the Free Software Foundation; either version 2.1 of
-
 //  the GNU Lesser General Public License, or any later version.
-
 //
-
 //  The source code contained herein is freely released WITHOUT ANY WARRANTY;
-
 //  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-
 //  PARTICULAR PURPOSE. (Refer to the GNU Lesser General Public License for
-
 //  more details.)
-
 //
-
 //  A copy of the GNU Lesser General Public License should have been received
-
 //  along with the source code contained herein; if not, a copy can be obtained
-
 //  by writing to:
-
 //
-
 //  Free Software Foundation, Inc.
-
 //  51 Franklin Street, Fifth Floor
-
 //  Boston, MA  02110-1301 USA
-
 //
-
 //  Further, no use of this source code is permitted in any form or means
-
 //  without inclusion of this banner prominently in any derived works.
-
 //
-
 //  Michael A. Morris
-
 //  Huntsville, AL
-
 //
-
 ///////////////////////////////////////////////////////////////////////////////
-
-
 
 //  Direct Instructions
 
-
-
 localparam pPFX  = 5'b00000;    // PFX  : IR<=*(I'=I+1); Op<=( Op|IR[3:0])<<4;
-
 localparam pNFX  = 5'b00001;    // NFX  : IR<=*(I'=I+1); Op<=(~Op|IR[3:0])<<4;
-
 localparam pEXE  = 5'b00010;    // EXE  : Execute(Op);IR<=*(I'=I+1);Op<=0;
-
 localparam pLDK  = 5'b00011;    // LDK  : IR<=*(I'=I+1);{A,B,C}<={Op,A,B};Op<=0;
-
 localparam pLDL  = 5'b00100;    // LDL  : {A,B,C}<={*(W+Op),A,B};
-
                                 //      : IR<=*(I'=I+1);Op<=0;
-
 localparam pLDNL = 5'b00101;    // LDNL : {A,B,C}<={*(A+Op),A,B};
-
                                 //      : IR<=*(I'=I+1);Op<=0;
-
 localparam pSTL  = 5'b00110;    // STL  : *(W+Op)<=A;{A,B,C}<={B,C,C};
-
                                 //      : IR<=*(I'=I+1);Op<=0;
-
 localparam pSTNL = 5'b00111;    // STNL : *(A+Op)<=B;{A,B,C}<={C,C,C};
-
                                 //      : IR<=*(I'=I+1);Op<=0;
-
 localparam pIN   = 5'b01000;    // IN   : {A,B,C}<={SPI_Rd16(Op,A),A,B};
-
                                 //      : IR<=*(I'=I+1);Op<=0;
-
 localparam pINB  = 5'b01001;    // INB  : {A,B,C}<={SPI_Rd08(Op,A),A,B};
-
                                 //      : IR<=*(I'=I+1);Op<=0;
-
 localparam pOUT  = 5'b01010;    // OUT  : SPI_Wr16(Op,A,B);{A,B,C}<={C,C,C};
-
                                 //      : IR<=*(I'=I+1);Op<=0;
-
 localparam pOUTB = 5'b01011;    // OUTB : SPI_Wr08(Op,A,B);{A,B,C}<={C,C,C};
-
                                 //      : IR<=*(I'=I+1);Op<=0;
-
 localparam pBEQ  = 5'b01100;    // BEQ  : IR<=*(I'=I+1+Z&Op);Op<=0;
-
 localparam pBLT  = 5'b01101;    // BLT  : IR<=*(I'=I+1+N&Op);Op<=0;
-
 localparam pJMP  = 5'b01110;    // JMP  : IR<=*(I'=I+1+1&Op);Op<=0;
-
 localparam pCALL = 5'b01111;    // CALL : *(W'=W-2;)<=I;
-
                                 //      : IR<=*(I'=I+1+1&Op);Op<=0;
-
-
 
 //  Indirect Instructions
 
-
-
 localparam pCLC  = 5'b10000;    // CLC  : {A,B,C}<={A,B,C};Cy<=0;
-
 localparam pSEC  = 5'b10001;    // SEC  : {A,B,C}<={A,B,C};Cy<=1;
-
 localparam pTAW  = 5'b10010;    // TAW  : {A,B,C}<={B,C,C};W<=A;
-
 localparam pTWA  = 5'b10011;    // TWA  : {A,B,C}<={W,A,B};
-
 localparam pDUP  = 5'b10100;    // DUP  : {A,B,C}<={A,A,B};
-
 localparam pXAB  = 5'b10101;    // XAB  : {A,B,C}<={B,A,C};
-
 localparam pPOP  = 5'b10110;    // POP  : {A,B,C}<={B,C,C};
-
 localparam pRAS  = 5'b10111;    // RAS  : {A,B,C}<={B,C,A};
-
 localparam pROR  = 5'b11000;    // ROR  : {A,B,C}<={ROR(A, B, Cy),C,C};
-
 localparam pROL  = 5'b11001;    // ROL  : {A,B,C}<={ROL(A, B, Cy),C,C};
-
 localparam pADC  = 5'b11010;    // ADC  : {A,B,C}<={B+ A+Cy,C,C};Cy<=Co[16];
-
 localparam pSBC  = 5'b11011;    // SBC  : {A,B,C}<={B+~A+Cy,C,C};Cy<=Co[16];
-
 localparam pAND  = 5'b11100;    // AND  : {A,B,C}<={B&A,C,C};
-
 localparam pORL  = 5'b11101;    // ORL  : {A,B,C}<={B|A,C,C};
-
 localparam pXOR  = 5'b11110;    // XOR  : {A,B,C}<={B^A,C,C};
-
 localparam pHLT  = 5'b11111;    // HLT  : Processor Halts
-
