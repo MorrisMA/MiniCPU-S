@@ -125,8 +125,8 @@ A summary of the MiniCPU-S instruction set is provided in the following table:
     0x22    :   TAW     --  Transfer A to W
     0x23    :   TWA     --  Transfer W to A
     0x24    :   DUP     --  Duplicate A
-    0x25    :   XAB     --  Exchange A and B
-    0x26    :   POP     --  Pop A
+    0x25    :   POP     --  Pop A
+    0x26    :   XAB     --  Exchange A and B
     0x27    :   RAS     --  Roll ALU stack: A => C; C => B; B => A;
     0x28    :   ROR     --  Rotate A right (by mask in B) and set C
     0x29    :   ROL     --  Rotate A left (by mask in B) and set C
