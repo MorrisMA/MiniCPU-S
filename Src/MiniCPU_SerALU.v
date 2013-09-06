@@ -161,6 +161,9 @@
 //  1.01    12J13   MAM     Restored port list modifications that aid in the
 //                          interconnection of the Serial PCU and Serial ALU.
 //
+//  1.10    13I05   MAM     Changed DI from a 16-bit vector into a 1 bit value.
+//                          With DI as a vector, the module does not work.
+//
 // Additional Comments:
 //
 //  The ALU is presented with a parallel function code when an operation is to
@@ -173,7 +176,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-`define DEBUG   // Enable Test Port of UUT
+//`define DEBUG   // Enable Test Port of UUT
 
 module MiniCPU_SerALU #(
     parameter N = 16
@@ -213,7 +216,7 @@ module MiniCPU_SerALU #(
 wire    CE;                     // Maps to ALU_En
 wire    [4:0] I;                // Maps to ALU_Op
 wire    Op, W;                  // Maps to PCU_DI
-wire    [(N - 1):0] DI;         // Maps to ALU_DI
+wire    DI;                     // Maps to ALU_DI
 
 wire    Sub;
 wire    Ai, Bi, Ci, Sum, Co;
@@ -353,16 +356,17 @@ begin
             5'b10110 : A <= #1 {B[0], A[(N-1):1]};                      // XAB
             5'b10111 : A <= #1 {B[0], A[(N-1):1]};                      // RAS
             //
-            5'b11000 : A <= #1 ((B[0]) ? {A[0], A[(N-1):1]}            // ROR
-                                        :  A                    );       // ROR
-            5'b11001 : A <= #1 ((B[0]) ? {A[(N-2):0], A[(N-1)]}        // ROL
-                                        :  A                    );       // ROL
+            5'b11000 : A <= #1 ((B[0]) ? {A[0], A[(N-1):1]}             // ROR
+                                       :  A                    );       // ROR
+            5'b11001 : A <= #1 ((B[0]) ? {A[(N-2):0], A[(N-1)]}         // ROL
+                                       :  A                    );       // ROL
+            //
             5'b11010 : A <= #1 {Sum, A[(N-1):1]};                       // ADC
             5'b11011 : A <= #1 {Sum, A[(N-1):1]};                       // SBC
-            5'b11100 : A <= #1 {(B[0] & A[0]), A[(N-1):1]};            // AND
-            5'b11101 : A <= #1 {(B[0] | A[0]), A[(N-1):1]};            // ORL
-            5'b11110 : A <= #1 {(B[0] ^ A[0]), A[(N-1):1]};            // XOR
-            5'b11111 : A <= #1 {(B[0] ^ A[0]), A[(N-1):1]};            // HLT
+            5'b11100 : A <= #1 {(B[0] & A[0]), A[(N-1):1]};             // AND
+            5'b11101 : A <= #1 {(B[0] | A[0]), A[(N-1):1]};             // ORL
+            5'b11110 : A <= #1 {(B[0] ^ A[0]), A[(N-1):1]};             // XOR
+            5'b11111 : A <= #1 {(B[0] ^ A[0]), A[(N-1):1]};             // HLT
         endcase
 end
 
@@ -394,11 +398,11 @@ begin
             5'b00101 : B <= #1 {B[(N-2):0], A[(N-1)]};                  // LDNL
             5'b00110 : B <= #1 {B[(N-2):0], C[(N-1)]};                  // STL
             5'b00111 : B <= #1 {B[(N-2):0], C[(N-1)]};                  // STNL
-            5'b01000 : B <= #1  {B[ (N-2)   :    0], A[ (N-1)   ]};    // IN
-            5'b01001 : B <= #1 {{B[ (N-2)   :(N/2)], A[ (N-1)   ]},    // INB
+            5'b01000 : B <= #1  {B[ (N-2)   :    0], A[ (N-1)   ]};     // IN
+            5'b01001 : B <= #1 {{B[ (N-2)   :(N/2)], A[ (N-1)   ]},     // INB
                                 {B[((N/2)-2):    0], A[((N/2)-1)]}};    // INB
-            5'b01010 : B <= #1  {B[ (N-2)   :    0], C[ (N-1)   ]};    // OUT
-            5'b01011 : B <= #1 {{B[ (N-2)   :(N/2)], C[ (N-1)   ]},    // OUTB
+            5'b01010 : B <= #1  {B[ (N-2)   :    0], C[ (N-1)   ]};     // OUT
+            5'b01011 : B <= #1 {{B[ (N-2)   :(N/2)], C[ (N-1)   ]},     // OUTB
                                 {B[((N/2)-2):    0], C[((N/2)-1)]}};    // OUTB
             5'b01100 : B <= #1 {B[(N-2):0], B[(N-1)]};                  // BEQ
             5'b01101 : B <= #1 {B[(N-2):0], B[(N-1)]};                  // BLT

@@ -403,7 +403,7 @@ initial begin
        && (Cy   == 1'b0)
        && (Z    == 1'b0)
        && (N    == 1'b1)
-       && (MOSI == 16'h0000))
+       && (MOSI == 16'h965A))
         $display("POP  - Passed\n");
     else begin
         $display("POP  - Fail\n");
@@ -421,7 +421,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
     end
     CE = 0; I = pHLT; MISO = 16'h0000; Op = 16'h0000; W = 16'h0000;
@@ -458,12 +458,12 @@ initial begin
     CE = 0; I = pHLT; MISO = 16'h0000; Op = 16'h0000; W = 16'h0000;
     
     #1;
-    if(   (A    == 16'h0000)
+    if(   (A    == 16'hFFFF)
        && (B    == 16'h96A5)
        && (C    == 16'h96A5)
        && (Cy   == 1'b0)
-       && (Z    == 1'b1)
-       && (N    == 1'b0)
+       && (Z    == 1'b0)
+       && (N    == 1'b1)
        && (MOSI == 16'h0000))
         $display("TWA  - Passed\n");
     else begin
@@ -486,23 +486,15 @@ initial begin
         Op = (Op << 1);
         W  = (W  << 1);
     end
-    
-    for(j = 0; j < 16; j = j + 1) begin
-        DI = MISO[15 - j];
-        @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
-        Op = (Op << 1);
-        W  = (W  << 1);
-    end
     CE = 0; I = pHLT; MISO = 16'h0000; Op = 16'h0000; W = 16'h0000;
     
     #1;
-    if(   (A    == 16'h0000)
-       && (B    == 16'h0000)
-       && (C    == 16'h0000)
+    if(   (A    == 16'hFFFF)
+       && (B    == 16'hFFFF)
+       && (C    == 16'h96A5)
        && (Cy   == 1'b0)
-       && (Z    == 1'b1)
-       && (N    == 1'b0)
+       && (Z    == 1'b0)
+       && (N    == 1'b1)
        && (MOSI == 16'h0000))
         $display("DUP  - Passed\n");
     else begin
@@ -529,8 +521,8 @@ initial begin
     
     #1;
     if(   (A    == 16'h00C3)
-       && (B    == 16'h0000)
-       && (C    == 16'h0000)
+       && (B    == 16'hFFFF)
+       && (C    == 16'hFFFF)
        && (Cy   == 1'b0)
        && (Z    == 1'b0)
        && (N    == 1'b0)
@@ -559,12 +551,12 @@ initial begin
     CE = 0; I = pHLT; MISO = 16'h0000; Op = 16'h0000; W = 16'h0000;
     
     #1;
-    if(   (A    == 16'h0000)
-       && (B    == 16'h0000)
-       && (C    == 16'h0000)
+    if(   (A    == 16'hFFFF)
+       && (B    == 16'hFFFF)
+       && (C    == 16'hFFFF)
        && (Cy   == 1'b0)
-       && (Z    == 1'b1)
-       && (N    == 1'b0)
+       && (Z    == 1'b0)
+       && (N    == 1'b1)
        && (MOSI == 16'hC3FF))
         $display("OUTB - Passed\n");
     else begin
@@ -577,8 +569,7 @@ initial begin
     @(posedge Clk) #1;
     @(posedge Clk) #1;
 
-    // Test Default Operation of Serial ALU
-    //      CALL, NFX, PFX, BEQ, BLT, JMP, HLT
+    // Initialize ALU Stack
 
     CE = 1; I = pLDL; MISO = 16'hFF00; Op = 16'hFFFF; W = 16'h8000;
     for(j = 0; j < 16; j = j + 1) begin
@@ -595,63 +586,6 @@ initial begin
         DI = MISO[(15 - j)];
         @(posedge Clk) #1;
     end
-
-    CE = 1; I = pCALL; MISO = 16'hFFFF; Op = 16'hFFFF; W = 0; MOSI = 16'hFFFF;
-    for(j = 0; j < 16; j = j + 1) begin
-        DI = MISO[15 - j];
-        @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
-        Op = (Op << 1);
-        W  = (W  << 1);
-    end
-    CE = 1; I = pNFX; MISO = 16'hFFFF; Op = 16'hFFFF; W = 0; MOSI = 16'hFFFF;
-    for(j = 0; j < 16; j = j + 1) begin
-        DI = MISO[15 - j];
-        @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
-        Op = (Op << 1);
-        W  = (W  << 1);
-    end
-    CE = 1; I = pPFX; MISO = 16'hFFFF; Op = 16'hFFFF; W = 0; MOSI = 16'hFFFF;
-    for(j = 0; j < 16; j = j + 1) begin
-        DI = MISO[15 - j];
-        @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
-        Op = (Op << 1);
-        W  = (W  << 1);
-    end
-    CE = 1; I = pBEQ; MISO = 16'hFFFF; Op = 16'hFFFF; W = 0; MOSI = 16'hFFFF;
-    for(j = 0; j < 16; j = j + 1) begin
-        DI = MISO[15 - j];
-        @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
-        Op = (Op << 1);
-        W  = (W  << 1);
-    end
-    CE = 1; I = pBLT; MISO = 16'hFFFF; Op = 16'hFFFF; W = 0; MOSI = 16'hFFFF;
-    for(j = 0; j < 16; j = j + 1) begin
-        DI = MISO[15 - j];
-        @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
-        Op = (Op << 1);
-        W  = (W  << 1);
-    end
-    CE = 1; I = pJMP; MISO = 16'hFFFF; Op = 16'hFFFF; W = 0; MOSI = 16'hFFFF;
-    for(j = 0; j < 16; j = j + 1) begin
-        DI = MISO[15 - j];
-        @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
-        Op = (Op << 1);
-        W  = (W  << 1);
-    end
-    CE = 1; I = pHLT; MISO = 16'hFFFF; Op = 16'hFFFF; W = 0; MOSI = 16'hFFFF;
-    for(j = 0; j < 16; j = j + 1) begin
-        DI = MISO[15 - j];
-        @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
-        Op = (Op << 1);
-        W  = (W  << 1);
-    end
     CE = 0; I = pHLT; MISO = 16'h0000; Op = 16'h0000; W = 16'h0000;
     
     #1;
@@ -660,12 +594,10 @@ initial begin
        && (C    == 16'hFF00)
        && (Cy   == 1'b0)
        && (Z    == 1'b0)
-       && (N    == 1'b0)
-       && (MOSI == 16'h0000)) begin
-        $display("Default Operation Instructions - Passed\n");
-        $display("    CALL, NFX, PFX, BEQ, BLT, JMP, HLT\n");
-    end else begin
-        $display("Default Operation Instructions - Fail\n");
+       && (N    == 1'b0))
+        $display("\nStarting Arithmentic and Logic Operations Tests.\n");
+    else begin
+        $display("ALU Stack Initialization - Fail\n");
         $stop;
     end
 
@@ -680,7 +612,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -711,7 +643,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -742,7 +674,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -773,7 +705,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -820,7 +752,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -828,7 +760,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -859,7 +791,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -867,7 +799,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -875,7 +807,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -883,7 +815,7 @@ initial begin
     for(j = 0; j < 16; j = j + 1) begin
         DI = MISO[15 - j];
         @(posedge Clk) #1;
-        MOSI[15 - j] = DO;
+        MOSI[j] = DO;
         Op = (Op << 1);
         W  = (W  << 1);
     end
@@ -984,9 +916,9 @@ initial begin
        && (Z    == 1'b1)
        && (N    == 1'b0)
        && (MOSI == 16'h0000))
-        $display("Logic Unit Test - Passed\n");
+        $display("AND, ORL, XOR Tests - Passed\n");
     else begin
-        $display("Logic Unit Test - Fail\n");
+        $display("AND, ORL, XOR Tests - Fail\n");
         $stop;
     end
 
@@ -996,6 +928,8 @@ initial begin
     @(posedge Clk) #1;
 
 //  End of Simulation
+
+    $display("\nSuccess - All MiniCPU-S Serial ALU Tests Passed\n");
 
     $stop;
 end
@@ -1044,8 +978,8 @@ begin
         5'b1_0010   : IDec = "TAW ";
         5'b1_0011   : IDec = "TWA ";
         5'b1_0100   : IDec = "DUP ";
-        5'b1_0101   : IDec = "XAB "; 
-        5'b1_0110   : IDec = "POP ";
+        5'b1_0101   : IDec = "POP "; 
+        5'b1_0110   : IDec = "XAB ";
         5'b1_0111   : IDec = "RAS ";
         5'b1_1000   : IDec = "ROR ";
         5'b1_1001   : IDec = "ROL ";
